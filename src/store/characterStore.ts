@@ -1,0 +1,283 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type {
+  Character,
+  CharacterConfig,
+  HitLogEntry,
+} from "../types/character";
+
+interface CharacterStore {
+  characters: Record<string, Character>;
+
+  createCharacter: (name: string, config: CharacterConfig) => string;
+  updateName: (id: string, name: string) => void;
+  updateConfig: (id: string, patch: Partial<CharacterConfig>) => void;
+  deleteCharacter: (id: string) => void;
+
+  addSpeechBubble: (id: string, text: string) => void;
+
+  hitWithSlingshot: (id: string, damage: number) => void;
+  hitWithScream: (id: string, decibel: number) => void;
+  pluckStrand: (id: string, strandIndex: number) => void;
+  refillHair: (id: string) => void;
+  regrowStrands: (id: string, count: number) => void;
+
+  recoverHp: (id: string, amount: number) => void;
+  recoverHearing: (id: string, amount: number) => void;
+}
+
+const nowIso = () => new Date().toISOString();
+const touch = (c: Character): Character => ({ ...c, updatedAt: nowIso() });
+
+function logHit(
+  c: Character,
+  type: HitLogEntry["type"],
+  meter: HitLogEntry["meter"],
+  amount: number,
+): Character {
+  const entry: HitLogEntry = {
+    id: crypto.randomUUID(),
+    type,
+    meter,
+    amount,
+    timestamp: nowIso(),
+  };
+  return {
+    ...c,
+    hitLog: [...c.hitLog, entry],
+    stats: {
+      ...c.stats,
+      totalHits: c.stats.totalHits + 1,
+      lastHitAt: entry.timestamp,
+    },
+  };
+}
+
+export const useCharacterStore = create<CharacterStore>()(
+  persist(
+    (set) => ({
+      characters: {},
+
+      createCharacter: (name, config) => {
+        const id = crypto.randomUUID();
+        const character: Character = {
+          id,
+          name,
+          config,
+          stats: {
+            totalHits: 0,
+            streakDays: 0,
+            lastHitAt: null,
+            currentHp: 100,
+            hpLastRecoveredAt: nowIso(),
+            currentHearing: 100,
+            hearingLastRecoveredAt: nowIso(),
+          },
+          hitLog: [],
+          speechBubbles: [],
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        };
+        set((s) => ({ characters: { ...s.characters, [id]: character } }));
+        return id;
+      },
+
+      updateName: (id, name) =>
+        set((s) => {
+          const c = s.characters[id];
+          if (!c) return s;
+          return {
+            characters: { ...s.characters, [id]: touch({ ...c, name }) },
+          };
+        }),
+
+      updateConfig: (id, patch) =>
+        set((s) => {
+          const c = s.characters[id];
+          if (!c) return s;
+          return {
+            characters: {
+              ...s.characters,
+              [id]: touch({ ...c, config: { ...c.config, ...patch } }),
+            },
+          };
+        }),
+
+      deleteCharacter: (id) =>
+        set((s) => {
+          const { [id]: _, ...rest } = s.characters;
+          return { characters: rest };
+        }),
+
+      addSpeechBubble: (id, text) =>
+        set((s) => {
+          const c = s.characters[id];
+          if (!c) return s;
+          const bubble = { id: crypto.randomUUID(), text, createdAt: nowIso() };
+          return {
+            characters: {
+              ...s.characters,
+              [id]: touch({
+                ...c,
+                speechBubbles: [...c.speechBubbles, bubble],
+              }),
+            },
+          };
+        }),
+
+      hitWithSlingshot: (id, damage) =>
+        set((s) => {
+          const c = s.characters[id];
+          if (!c) return s;
+          const hit = logHit(c, "slingshot", "hp", damage);
+          return {
+            characters: {
+              ...s.characters,
+              [id]: touch({
+                ...hit,
+                stats: {
+                  ...hit.stats,
+                  currentHp: Math.max(0, hit.stats.currentHp - damage),
+                },
+              }),
+            },
+          };
+        }),
+
+      hitWithScream: (id, decibel) =>
+        set((s) => {
+          const c = s.characters[id];
+          if (!c) return s;
+          const damage = Math.min(20, (decibel / 100) * 20);
+          const hit = logHit(c, "mic", "hearing", damage);
+          return {
+            characters: {
+              ...s.characters,
+              [id]: touch({
+                ...hit,
+                stats: {
+                  ...hit.stats,
+                  currentHearing: Math.max(
+                    0,
+                    hit.stats.currentHearing - damage,
+                  ),
+                },
+              }),
+            },
+          };
+        }),
+
+      pluckStrand: (id, strandIndex) =>
+        set((s) => {
+          const c = s.characters[id];
+          if (!c) return s;
+          if (c.config.hair.removedStrands.some((r) => r.index === strandIndex))
+            return s;
+          const hit = logHit(c, "hair", "hair", 1);
+          return {
+            characters: {
+              ...s.characters,
+              [id]: touch({
+                ...hit,
+                config: {
+                  ...hit.config,
+                  hair: {
+                    ...hit.config.hair,
+                    removedStrands: [
+                      ...hit.config.hair.removedStrands,
+                      { index: strandIndex, removedAt: nowIso() },
+                    ],
+                  },
+                },
+              }),
+            },
+          };
+        }),
+
+      // 즉시 리필 (버튼용) — 회복 대기 없이 바로 원상복구
+      refillHair: (id) =>
+        set((s) => {
+          const c = s.characters[id];
+          if (!c) return s;
+          return {
+            characters: {
+              ...s.characters,
+              [id]: touch({
+                ...c,
+                config: {
+                  ...c.config,
+                  hair: { ...c.config.hair, removedStrands: [] },
+                },
+              }),
+            },
+          };
+        }),
+
+      regrowStrands: (id, count) =>
+        set((s) => {
+          const c = s.characters[id];
+          if (!c || count <= 0) return s;
+          const sorted = [...c.config.hair.removedStrands].sort(
+            (a, b) => +new Date(a.removedAt) - +new Date(b.removedAt),
+          );
+          return {
+            characters: {
+              ...s.characters,
+              [id]: touch({
+                ...c,
+                config: {
+                  ...c.config,
+                  hair: {
+                    ...c.config.hair,
+                    removedStrands: sorted.slice(count),
+                  },
+                },
+              }),
+            },
+          };
+        }),
+
+      recoverHp: (id, amount) =>
+        set((s) => {
+          const c = s.characters[id];
+          if (!c) return s;
+          return {
+            characters: {
+              ...s.characters,
+              [id]: touch({
+                ...c,
+                stats: {
+                  ...c.stats,
+                  currentHp: Math.min(100, c.stats.currentHp + amount),
+                  hpLastRecoveredAt: nowIso(),
+                },
+              }),
+            },
+          };
+        }),
+
+      recoverHearing: (id, amount) =>
+        set((s) => {
+          const c = s.characters[id];
+          if (!c) return s;
+          return {
+            characters: {
+              ...s.characters,
+              [id]: touch({
+                ...c,
+                stats: {
+                  ...c.stats,
+                  currentHearing: Math.min(
+                    100,
+                    c.stats.currentHearing + amount,
+                  ),
+                  hearingLastRecoveredAt: nowIso(),
+                },
+              }),
+            },
+          };
+        }),
+    }),
+    { name: "ihateyou-storage" },
+  ),
+);
