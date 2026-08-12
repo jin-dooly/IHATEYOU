@@ -47,7 +47,7 @@ export default function Home() {
               className="scatter-item"
               onClick={() => setSelectedId(c.id)}
             >
-              <CharacterFigure color={c.config.bodyColor} size={56} />
+              <CharacterFigure {...c.config} size={56} />
             </div>
           ))}
         </div>
@@ -60,16 +60,11 @@ export default function Home() {
           />
           <p className="target-name">{selected.name}</p>
           <div className="target-figure">
-            <CharacterFigure color={selected.config.bodyColor} size={140} />
+            <CharacterFigure {...selected.config} size={140} />
           </div>
           <div className="target-others">
             {characters.map((c) => (
-              <CharacterFigure
-                key={c.id}
-                color={c.config.bodyColor}
-                size={48}
-                faded
-              />
+              <CharacterFigure key={c.id} size={48} faded {...c.config} />
             ))}
           </div>
           <button

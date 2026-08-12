@@ -81,7 +81,7 @@ export default function CharacterRoom() {
           <div className="speech-bubble">{latestBubble.text}</div>
         )}
 
-        <CharacterFigure color={character.config.bodyColor} size={160} />
+        <CharacterFigure {...character.config} />
       </div>
 
       {mode === "hair" && hairPct < 15 && (

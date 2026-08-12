@@ -60,7 +60,7 @@ export default function CharacterCreate() {
             className="character-preview"
             style={{ backgroundColor: config.bodyColor }}
           >
-            <CharacterFigure color={config.bodyColor} />
+            <CharacterFigure {...config} />
           </div>
           <HeadShapePicker
             headShape={config.headShape}
