@@ -4,9 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { useCharacterStore } from "../store/characterStore";
 import type { CharacterConfig } from "../types/character";
 import { FaceCanvas } from "../components/character/FaceCanvas";
-import { HeadShapePicker } from "../components/character/HeadShapePicker";
-import { HairPicker } from "../components/character/HairPicker";
+import { CharacterConfigPicker } from "../components/character/CharacterConfigPicker";
 import { CharacterFigure } from "../components/character/CharacterFigure";
+import styles from "./CharacterCreate.module.scss";
 
 type Step = "face" | "customize";
 
@@ -14,7 +14,7 @@ const DEFAULT_CONFIG: CharacterConfig = {
   headShape: "round",
   bodyColor: "#ffffff",
   faceImage: "",
-  hair: { styleId: "buzzcut", color: "#2B2320", removedStrands: [] },
+  hair: { styleId: "buzzcut", color: "#000", removedStrands: [] },
 };
 
 export default function CharacterCreate() {
@@ -37,7 +37,7 @@ export default function CharacterCreate() {
   }
 
   return (
-    <div className="page">
+    <div className={"page " + styles.page}>
       <div className="step-header">
         {step === "customize" && (
           <button onClick={() => setStep("face")}>←</button>
@@ -56,23 +56,28 @@ export default function CharacterCreate() {
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-          <div
-            className="character-preview"
-            style={{ backgroundColor: config.bodyColor }}
-          >
+          <div className="character-preview">
             <CharacterFigure {...config} />
           </div>
-          <HeadShapePicker
+          <CharacterConfigPicker
+            bodyColor={config.bodyColor}
+            onBodyColorChange={(bodyColor) =>
+              setConfig((p) => ({ ...p, bodyColor }))
+            }
+            hairColor={config.hair.color}
+            onHairColorChange={(color) =>
+              setConfig((p) => ({ ...p, hair: { ...p.hair, color } }))
+            }
             headShape={config.headShape}
             onHeadShapeChange={(headShape) =>
               setConfig((p) => ({ ...p, headShape }))
             }
           />
-          <HairPicker
-            hair={config.hair}
-            onHairChange={(hair) => setConfig((p) => ({ ...p, hair }))}
-          />
-          <button className="primary-button" onClick={handleCustomDone}>
+          <button
+            className="primary-button"
+            onClick={handleCustomDone}
+            disabled={!name.trim()}
+          >
             완료
           </button>
         </div>

@@ -73,19 +73,19 @@ export function CharacterFigure({
         fill="black"
       />
       {/* 얼굴 이미지 — 몸통 위, 맨 위에 그려야 눈코입이 보임 */}
-      {faceImage && (
-        <image
-          // href={faceImage}
-          href={
-            "https://i.pinimg.com/736x/25/b3/49/25b34925c0ca4562ccab9b6aa9cf8eac.jpg"
-          }
-          x="28"
-          y="18"
-          width="84"
-          height="84"
-          clipPath="url(#face-clip)"
-        />
-      )}
+      {/* {faceImage && ( */}
+      <image
+        // href={faceImage}
+        href={
+          "https://i.pinimg.com/736x/25/b3/49/25b34925c0ca4562ccab9b6aa9cf8eac.jpg"
+        }
+        x="28"
+        y="18"
+        width="84"
+        height="84"
+        clipPath="url(#face-clip)"
+      />
+      {/* )} */}
     </svg>
   );
 }

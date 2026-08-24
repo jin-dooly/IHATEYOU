@@ -2,8 +2,7 @@
 import { useState } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { useCharacterStore } from "../store/characterStore";
-import { HeadShapePicker } from "../components/character/HeadShapePicker";
-import { HairPicker } from "../components/character/HairPicker";
+import { CharacterConfigPicker } from "../components/character/CharacterConfigPicker";
 
 export default function CharacterEdit() {
   const { id } = useParams<{ id: string }>();

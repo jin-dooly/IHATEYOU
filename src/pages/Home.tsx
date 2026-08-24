@@ -27,6 +27,7 @@ export default function Home() {
       hair: {
         styleId: "default",
         removedStrands: [],
+        color: "#000",
       },
     };
     createCharacter("default", defaultConfig);

@@ -49,14 +49,15 @@ export function FaceCanvas({ onNext }: FaceCanvasProps) {
     // 캔버스 사이즈 설정
     const canvas = canvasRef.current;
     if (!canvas) return;
-    canvas.width = window.innerHeight; // 혹은 원하는 사이즈 px없이 숫자만 입력
-    canvas.height = window.innerWidth; // 혹은 원하는 사이즈 px없이 숫자만 입력
+    const width = document.getElementById("root")?.clientWidth ?? 0;
+    canvas.width = width - 80; // 혹은 원하는 사이즈 px없이 숫자만 입력
+    canvas.height = width - 80; // 혹은 원하는 사이즈 px없이 숫자만 입력
 
     // 캔버스 context 접근 후 기본 설정
     const context = canvas.getContext("2d"); // "그리기 메서드와 속성을 갖는" 2차원 드로잉 컨텍스트 참조
     if (!context) return;
     context.strokeStyle = "black"; // line 색
-    context.lineWidth = 3; // line 굵기
+    context.lineWidth = 5; // line 굵기
     context.lineJoin = "round"; // 선 연결 모양(기본 값 miter 일반 모양)
     context.lineCap = "round"; // 선 끝 모양
     context.save(); // 드로잉 컨텍스트 설정 저장

@@ -7,7 +7,7 @@ export interface HairRemovedStrand {
 
 export interface HairState {
   styleId: string;
-  color?: string;
+  color: string;
   removedStrands: HairRemovedStrand[];
 }
 

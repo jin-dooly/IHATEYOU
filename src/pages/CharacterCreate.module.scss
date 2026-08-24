@@ -1,0 +1,22 @@
+.page {
+  position: relative;
+  overflow: hidden;
+}
+.characterFigure {
+  z-index: 0;
+  position: absolute;
+  top: 10%;
+  left: -25%;
+  opacity: 0.5;
+  width: calc(100% * 1.7);
+  aspect-ratio: 1 / 1.35;
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  + div {
+    z-index: 1;
+  }
+}

@@ -55,11 +55,13 @@
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  background-color: var(--bg);
 }
 
 body {
   /* width: 100%; */
   margin: 0;
+  background-color: #6b637523;
 }
 
 h1,
@@ -131,7 +133,7 @@ p {
 .face-canvas {
   touch-action: none;
   border: 2px solid var(--border);
-  border-radius: 16px;
+  border-radius: 50%;
   cursor: crosshair;
   background: rgba(255, 255, 255, 0.6);
 }
