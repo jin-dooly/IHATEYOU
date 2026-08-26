@@ -58,7 +58,9 @@ export default function Home() {
             className="back-tap"
             onClick={() => setSelectedId(null)}
             aria-label="닫기"
-          />
+          >
+            닫기
+          </button>
           <p className="target-name">{selected.name}</p>
           <div className="target-figure">
             <CharacterFigure {...selected.config} size={140} />

@@ -49,6 +49,12 @@ export default function CharacterRoom() {
         >
           📊
         </button>
+        <button
+          onClick={() => navigate(`/characters/${id}/edit`)}
+          aria-label="수정"
+        >
+          ⚙️
+        </button>
       </header>
 
       <div className={`meter-bar ${meter.className}`}>
