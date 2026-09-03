@@ -5,6 +5,7 @@ import type {
   CharacterConfig,
   HitLogEntry,
 } from "../types/character";
+import { assignSlot } from "../utils/scatterLayout";
 
 interface CharacterStore {
   characters: Record<string, Character>;
@@ -55,14 +56,18 @@ function logHit(
 
 export const useCharacterStore = create<CharacterStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       characters: {},
 
       createCharacter: (name, config) => {
+        const existing = Object.values(get().characters);
+        const slotIndex = assignSlot(existing.map((c) => c.slotIndex)); // 꽉 찼으면 여기서 에러
+
         const id = crypto.randomUUID();
         const character: Character = {
           id,
           name,
+          slotIndex,
           config,
           stats: {
             totalHits: 0,

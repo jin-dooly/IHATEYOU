@@ -1,8 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCharacterStore } from "../store/characterStore";
+import {
+  FIXED_SLOTS,
+  ITEM_SIZE,
+  SCATTER_WIDTH,
+  SCATTER_HEIGHT,
+} from "../utils/scatterLayout";
 import { CharacterFigure } from "../components/character/CharacterFigure";
 import type { CharacterConfig } from "../types/character";
+import styles from "./Home.module.scss";
 
 export default function Home() {
   const charactersStore = useCharacterStore((s) => s.characters);
@@ -17,6 +24,15 @@ export default function Home() {
   const selected = useMemo(() => {
     return characters.find((c) => c.id === selectedId);
   }, [selectedId]);
+
+  function handleClose() {
+    setSelectedId(null);
+  }
+
+  function handleGoToRoom(event: React.MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    navigate(`/characters/${selectedId}/room`);
+  }
 
   useEffect(() => {
     if (characters.length > 0) return;
@@ -35,49 +51,53 @@ export default function Home() {
 
   return (
     <div className="page">
-      <header className="home-header">
+      <header className="header">
         <h1>I HATE YOU</h1>
-        <button onClick={() => navigate("/characters/create")}>+</button>
+        <button
+          className={"right-button"}
+          onClick={() => navigate("/characters/create")}
+        >
+          +
+        </button>
       </header>
-
-      {!selected ? (
-        <div className="character-scatter">
-          {characters.map((c) => (
-            <div
-              key={c.id}
-              className="scatter-item"
-              onClick={() => setSelectedId(c.id)}
+      <div className={styles.scatterContainer}>
+        <div
+          className={styles.scatter}
+          style={{ width: SCATTER_WIDTH, height: SCATTER_HEIGHT }}
+        >
+          {characters.map((c) => {
+            const pos = FIXED_SLOTS[c.slotIndex];
+            return (
+              <button
+                key={c.id}
+                onClick={() => setSelectedId(c.id)}
+                className={styles.scatterItem}
+                style={{
+                  left: `${pos.x - ITEM_SIZE / 2}px`,
+                  top: `${pos.y - ITEM_SIZE / 2}px`,
+                }}
+              >
+                <CharacterFigure {...c.config} size={ITEM_SIZE} />
+              </button>
+            );
+          })}
+        </div>
+        {selected && (
+          <div
+            className={styles.selectedCharacterContainer}
+            onClick={handleClose}
+          >
+            <span className={styles.selectedName}>{selected.name}</span>
+            <CharacterFigure {...selected.config} size={ITEM_SIZE * 3} />
+            <button
+              className={styles.goToCharacterRoom}
+              onClick={handleGoToRoom}
             >
-              <CharacterFigure {...c.config} size={56} />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="target-hero">
-          <button
-            className="back-tap"
-            onClick={() => setSelectedId(null)}
-            aria-label="닫기"
-          >
-            닫기
-          </button>
-          <p className="target-name">{selected.name}</p>
-          <div className="target-figure">
-            <CharacterFigure {...selected.config} size={140} />
+              괴롭히러 가기
+            </button>
           </div>
-          <div className="target-others">
-            {characters.map((c) => (
-              <CharacterFigure key={c.id} size={48} faded {...c.config} />
-            ))}
-          </div>
-          <button
-            className="primary-button"
-            onClick={() => navigate(`/characters/${selected.id}/room`)}
-          >
-            괴롭히러 가기
-          </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

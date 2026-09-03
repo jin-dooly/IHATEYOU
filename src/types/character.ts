@@ -47,6 +47,7 @@ export interface CharacterStats {
 export interface Character {
   id: string;
   name: string;
+  slotIndex: number;
   config: CharacterConfig;
   stats: CharacterStats;
   hitLog: HitLogEntry[];
