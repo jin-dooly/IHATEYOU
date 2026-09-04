@@ -10,6 +10,7 @@ import {
 import { CharacterFigure } from "../components/character/CharacterFigure";
 import type { CharacterConfig } from "../types/character";
 import styles from "./Home.module.scss";
+import Button from "../components/common/Button";
 
 export default function Home() {
   const charactersStore = useCharacterStore((s) => s.characters);
@@ -89,12 +90,12 @@ export default function Home() {
           >
             <span className={styles.selectedName}>{selected.name}</span>
             <CharacterFigure {...selected.config} size={ITEM_SIZE * 3} />
-            <button
+            <Button
               className={styles.goToCharacterRoom}
               onClick={handleGoToRoom}
             >
               괴롭히러 가기
-            </button>
+            </Button>
           </div>
         )}
       </div>
