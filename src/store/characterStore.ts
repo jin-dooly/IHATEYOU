@@ -16,6 +16,7 @@ interface CharacterStore {
   deleteCharacter: (id: string) => void;
 
   addSpeechBubble: (id: string, text: string) => void;
+  removeSpeechBubble: (id: string, bubbleId: string) => void;
 
   hitWithSlingshot: (id: string, damage: number) => void;
   hitWithScream: (id: string, decibel: number) => void;
@@ -125,6 +126,21 @@ export const useCharacterStore = create<CharacterStore>()(
               [id]: touch({
                 ...c,
                 speechBubbles: [...c.speechBubbles, bubble],
+              }),
+            },
+          };
+        }),
+
+      removeSpeechBubble: (id, bubbleId) =>
+        set((s) => {
+          const c = s.characters[id];
+          if (!c) return s;
+          return {
+            characters: {
+              ...s.characters,
+              [id]: touch({
+                ...c,
+                speechBubbles: c.speechBubbles.filter((b) => b.id !== bubbleId),
               }),
             },
           };

@@ -3,6 +3,8 @@ import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { useCharacterStore } from "../store/characterStore";
 import { hairRemainingPercent } from "../types/character";
 import { CharacterFigure } from "../components/character/CharacterFigure";
+import styles from "./CharacterRoom.module.scss";
+import Button from "../components/common/Button";
 
 type Mode = "slingshot" | "hair" | "mic";
 
@@ -26,6 +28,7 @@ export default function CharacterRoom() {
 
   const hairPct = hairRemainingPercent(character);
   const latestBubble = character.speechBubbles.at(-1);
+  console.log("latestBubble", latestBubble);
 
   const meter =
     mode === "slingshot"
@@ -39,42 +42,40 @@ export default function CharacterRoom() {
           };
 
   return (
-    <div className="page room">
-      <header className="room-header">
-        <button onClick={() => navigate("/characters")}>←</button>
-        <span>{character.name}</span>
-        <button
-          onClick={() => navigate(`/characters/${id}/stats`)}
-          aria-label="통계"
-        >
-          📊
-        </button>
-        <button
-          onClick={() => navigate(`/characters/${id}/edit`)}
-          aria-label="수정"
-        >
-          ⚙️
-        </button>
+    <div className={"page " + styles.characterRoomPage}>
+      <header className="header">
+        <button onClick={() => navigate("/characters")}>◀</button>
+        <h1>{character.name}</h1>
+        <div className="right-button">
+          <button
+            onClick={() => navigate(`/characters/${id}/stats`)}
+            aria-label="통계"
+          >
+            📊
+          </button>
+          <button
+            onClick={() => navigate(`/characters/${id}/edit`)}
+            aria-label="수정"
+          >
+            ⚙️
+          </button>
+        </div>
       </header>
 
-      <div className={`meter-bar ${meter.className}`}>
-        <span className="meter-label">{meter.label}</span>
-        <div className="meter-track">
-          <div className="meter-fill" style={{ width: `${meter.value}%` }} />
+      <div className={`${styles.meterBar} ${meter.className}`}>
+        <div className={styles.meterTrack}>
+          <div
+            className={styles.meterFill}
+            style={{ width: `${meter.value}%` }}
+          />
         </div>
+        <span className={styles.meterLabel}>{meter.label}</span>
       </div>
 
-      <div className="room-stage">
+      <div className={styles.roomStage}>
         {mode === "mic" && <DecibelMeter />}
 
-        <button
-          className="bubble-icon"
-          onClick={() => setBubbleOpen((v) => !v)}
-          aria-label="말풍선"
-        >
-          💬
-        </button>
-        {bubbleOpen && (
+        {bubbleOpen ? (
           <SpeechBubbleInput
             existing={latestBubble?.text}
             onSubmit={(text) => {
@@ -82,12 +83,34 @@ export default function CharacterRoom() {
               setBubbleOpen(false);
             }}
           />
-        )}
-        {!bubbleOpen && latestBubble && (
-          <div className="speech-bubble">{latestBubble.text}</div>
+        ) : latestBubble?.text ? (
+          <div className={styles.speechBubble}>
+            <span onClick={() => setBubbleOpen((v) => !v)}>
+              {latestBubble.text}
+            </span>
+            <button
+              className="speech-bubble-delete"
+              onClick={() =>
+                useCharacterStore
+                  .getState()
+                  .removeSpeechBubble(id, latestBubble.id)
+              }
+              aria-label="말풍선 삭제"
+            >
+              ✕
+            </button>
+          </div>
+        ) : (
+          <button
+            className="bubble-icon"
+            onClick={() => setBubbleOpen((v) => !v)}
+            aria-label="말풍선"
+          >
+            💬
+          </button>
         )}
 
-        <CharacterFigure {...character.config} />
+        <CharacterFigure {...character.config} className={styles.character} />
       </div>
 
       {mode === "hair" && hairPct < 15 && (
@@ -101,11 +124,11 @@ export default function CharacterRoom() {
       {mode === "mic" && <ScreamButton characterId={id} />}
       {mode === "slingshot" && <SlingshotStage characterId={id} />}
 
-      <nav className="attack-tabs">
+      <nav className={styles.attackTabs}>
         {TABS.map((t) => (
           <button
             key={t.key}
-            className={mode === t.key ? "tab active" : "tab"}
+            className={mode === t.key ? styles.activeTab : ""}
             onClick={() => setMode(t.key)}
           >
             {t.label}
@@ -146,13 +169,9 @@ function ScreamButton({ characterId }: { characterId: string }) {
   }
 
   return (
-    <button
-      className="primary-button"
-      onClick={handlePress}
-      disabled={listening}
-    >
+    <Button onClick={handlePress} disabled={listening}>
       {listening ? "···∙···∙·····" : "소리지르기"}
-    </button>
+    </Button>
   );
 }
 
@@ -178,7 +197,7 @@ function SpeechBubbleInput({
         onChange={(e) => setText(e.target.value)}
         placeholder="오늘 그 사람이 한 말"
       />
-      <button onClick={() => text.trim() && onSubmit(text.trim())}>등록</button>
+      <button onClick={() => onSubmit(text.trim())}>등록</button>
     </div>
   );
 }

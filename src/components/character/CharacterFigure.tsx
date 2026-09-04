@@ -1,6 +1,7 @@
+import type { ComponentPropsWithoutRef } from "react";
 import type { CharacterConfig } from "../../types/character";
 
-interface Props extends CharacterConfig {
+interface Props extends CharacterConfig, ComponentPropsWithoutRef<"svg"> {
   size?: number;
   faded?: boolean;
 }
@@ -10,9 +11,11 @@ export function CharacterFigure({
   bodyColor,
   size = 160,
   faded = false,
+  ...res
 }: Props) {
   return (
     <svg
+      {...res}
       width={size}
       height={size * 1.35}
       viewBox="0 0 160 222"
