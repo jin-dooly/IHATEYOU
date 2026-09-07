@@ -6,6 +6,7 @@ import type {
   HitLogEntry,
 } from "../types/character";
 import { assignSlot } from "../utils/scatterLayout";
+import { computeHpRecovery, computeHearingRecovery } from "../utils/recovery";
 
 interface CharacterStore {
   characters: Record<string, Character>;
@@ -26,6 +27,10 @@ interface CharacterStore {
 
   recoverHp: (id: string, amount: number) => void;
   recoverHearing: (id: string, amount: number) => void;
+
+  // 마지막 회복 시점 이후 경과 시간만큼 HP / 청력 을 자동 회복해 반영
+  settleHpRecovery: (id: string) => void;
+  settleHearingRecovery: (id: string) => void;
 }
 
 const nowIso = () => new Date().toISOString();
@@ -271,6 +276,56 @@ export const useCharacterStore = create<CharacterStore>()(
                   ...c.stats,
                   currentHp: Math.min(100, c.stats.currentHp + amount),
                   hpLastRecoveredAt: nowIso(),
+                },
+              }),
+            },
+          };
+        }),
+
+      // 시간 경과 기반 자동 회복 (computeHpRecovery 로 계산) — 1 미만이면
+      // 기준 시각을 그대로 둬서 다음 tick 에 누적되게 함
+      settleHpRecovery: (id) =>
+        set((s) => {
+          const c = s.characters[id];
+          if (!c) return s;
+          const gain = computeHpRecovery(c);
+          // 1 미만이면 대기 — 단, 마지막 남은 조각으로 100 을 채울 땐 적용
+          if (gain <= 0 || (gain < 1 && c.stats.currentHp + gain < 100)) return s;
+          return {
+            characters: {
+              ...s.characters,
+              [id]: touch({
+                ...c,
+                stats: {
+                  ...c.stats,
+                  currentHp: Math.min(100, c.stats.currentHp + gain),
+                  hpLastRecoveredAt: nowIso(),
+                },
+              }),
+            },
+          };
+        }),
+
+      // 청력도 동일 패턴 (computeHearingRecovery)
+      settleHearingRecovery: (id) =>
+        set((s) => {
+          const c = s.characters[id];
+          if (!c) return s;
+          const gain = computeHearingRecovery(c);
+          if (
+            gain <= 0 ||
+            (gain < 1 && c.stats.currentHearing + gain < 100)
+          )
+            return s;
+          return {
+            characters: {
+              ...s.characters,
+              [id]: touch({
+                ...c,
+                stats: {
+                  ...c.stats,
+                  currentHearing: Math.min(100, c.stats.currentHearing + gain),
+                  hearingLastRecoveredAt: nowIso(),
                 },
               }),
             },

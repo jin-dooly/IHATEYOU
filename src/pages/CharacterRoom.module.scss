@@ -3,7 +3,9 @@
 }
 
 .roomStage {
+  position: relative;
   margin: auto;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -14,6 +16,49 @@
     width: fit-content;
     margin: auto;
     padding: 16px;
+  }
+}
+
+.characterWrap {
+  width: fit-content;
+  transform-origin: 50% 50%;
+}
+
+.flinch {
+  animation: flinch 0.35s ease-out;
+}
+
+.dodge {
+  animation: dodge 0.5s ease-out;
+}
+
+@keyframes flinch {
+  0% {
+    transform: translateX(0) scale(1, 1);
+  }
+  25% {
+    transform: translateX(-4px) scale(1.06, 0.9);
+  }
+  55% {
+    transform: translateX(3px) scale(0.95, 1.04);
+  }
+  100% {
+    transform: translateX(0) scale(1, 1);
+  }
+}
+
+@keyframes dodge {
+  0% {
+    transform: translateX(0) rotate(0deg);
+  }
+  40% {
+    transform: translateX(-26px) rotate(-8deg);
+  }
+  75% {
+    transform: translateX(-18px) rotate(-4deg);
+  }
+  100% {
+    transform: translateX(0) rotate(0deg);
   }
 }
 
@@ -53,7 +98,10 @@
   }
 
   .meterFill {
+    height: 100%;
     background-color: red;
+    border-radius: 10px;
+    transition: width 0.25s ease-out;
   }
 }
 
@@ -61,4 +109,159 @@
   font-size: 12px;
   font-weight: 600;
   margin-left: 4px;
+}
+
+.speechBubbleBox {
+  position: relative;
+  margin: 30px 0 44px;
+  padding: 24px;
+  min-width: 50%;
+  max-width: 80%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  row-gap: 12px;
+
+  background-color: #f0f0f0;
+  border-radius: 24px;
+
+  font-size: 15px;
+  line-height: 1.5;
+  text-align: center;
+  color: #333;
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  // 말풍선 꼬리
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -14px;
+    right: 45%;
+    width: 0;
+    height: 0;
+    border: 15px solid transparent;
+    border-bottom: 0;
+    border-top-color: #f0f0f0;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 6px 0;
+    background: none;
+    border: none;
+    font: inherit;
+    text-align: center;
+    color: inherit;
+    resize: none;
+    overflow: hidden;
+
+    &:focus {
+      outline: none;
+    }
+
+    &::placeholder {
+      color: #b5b5b5;
+    }
+  }
+}
+
+.slingshotFrame {
+  display: block;
+  width: 96px;
+  aspect-ratio: 180 / 249; // 로드 전에도 높이 확보 → 기준점 계산 안정
+  margin: 8px auto 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+// roomStage 전체를 덮는 인터랙션 레이어 (viewBox 없이 1px = 1unit)
+.slingshotOverlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible; // 발사된 돌 / 이펙트가 프레임 밖으로 나가도 보이게
+  pointer-events: none; // 돌(파우치)만 잡히도록
+
+  .band {
+    stroke: #4a3524;
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+
+  .aimLine {
+    stroke: #c4c4c4;
+    stroke-width: 1.5;
+    stroke-dasharray: 4 4;
+    opacity: 0;
+  }
+
+  .burst {
+    stroke: #444;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  // 드래그 핸들 그룹 (돌 + 넉넉한 투명 잡기영역)
+  .projectile {
+    pointer-events: auto;
+    cursor: grab;
+    touch-action: none;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  .grabArea {
+    fill: #000;
+    fill-opacity: 0;
+    pointer-events: all; // 안 보여도 포인터는 잡음
+  }
+
+  .stone {
+    fill: #5b5b5b;
+    stroke: #3d3d3d;
+    stroke-width: 1.5;
+    pointer-events: none;
+  }
+}
+
+.floatText {
+  font-size: 14px;
+  font-weight: 700;
+  fill: #ff5a5a;
+  text-anchor: middle;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: floatUp 0.8s ease-out forwards;
+}
+
+@keyframes floatUp {
+  to {
+    transform: translateY(-26px);
+    opacity: 0;
+  }
+}
+
+.bubbleButtons {
+  display: flex;
+  justify-content: flex-end;
+  column-gap: 18px;
+
+  button {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    color: #9e9e9e;
+    cursor: pointer;
+  }
+
+  .delete {
+    color: #ff6b6b;
+  }
 }

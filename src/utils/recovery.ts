@@ -1,6 +1,7 @@
 import type { Character } from "../types/character";
 
 const HP_RECOVERY_PER_HOUR = 100 / 24; // 24시간에 걸쳐 완전 회복
+const HEARING_RECOVERY_PER_HOUR = 100 / 24; // 24시간에 걸쳐 완전 회복
 const HAIR_REGROW_INTERVAL_HOURS = 12; // 12시간마다 1가닥
 
 export function computeHpRecovery(
@@ -13,6 +14,20 @@ export function computeHpRecovery(
   return Math.min(
     100 - character.stats.currentHp,
     Math.max(0, hours * HP_RECOVERY_PER_HOUR),
+  );
+}
+
+export function computeHearingRecovery(
+  character: Character,
+  now = new Date(),
+): number {
+  const hours =
+    (now.getTime() -
+      new Date(character.stats.hearingLastRecoveredAt).getTime()) /
+    3600000;
+  return Math.min(
+    100 - character.stats.currentHearing,
+    Math.max(0, hours * HEARING_RECOVERY_PER_HOUR),
   );
 }
 
