@@ -220,9 +220,16 @@ function ScreamButton({ characterId }: { characterId: string }) {
 
 // 프레임 이미지(Slingshot.svg, viewBox 180x249) 크기 대비 비율(0~1).
 // 실제 아트워크의 두 갈래 감김 부분 ≈ (20,28) / (162,29), 뷰박스 180x249 기준.
-const FORK_L_RATIO = { x: 0.111, y: 0.112 }; // 왼쪽 갈래 (고무줄 고정점)
-const FORK_R_RATIO = { x: 0.9, y: 0.116 }; // 오른쪽 갈래
+const FORK_L_RATIO = { x: 0.111, y: 0.135 }; // 왼쪽 갈래 (고무줄 고정점)
+const FORK_R_RATIO = { x: 0.9, y: 0.13 }; // 오른쪽 갈래
 const POUCH_RATIO = { x: 0.5, y: 0.17 }; // 안 당겼을 때 돌 위치 (갈래 사이)
+// 명중 대상 = 피사체 몸(세로 띠). targetRef 박스(≈ CharacterFigure,
+// viewBox 160x222) 좌상단 기준 비율.
+// 약하게 던지면 HIT_BODY_Y(몸통) 높이에, 세게 던지면 HIT_HEAD_Y(머리)
+// 높이에 맞는다. 그 사이는 당긴 힘에 비례해 선형 보간.
+const HIT_HEAD_Y = 0.2; // 머리 (풀 당김이 닿는 높이)
+const HIT_BODY_Y = 0.62; // 몸통/골반 (최소 당김이 닿는 높이)
+const HIT_HALF_W = 0.3; // 좌우 명중 폭 (targetRef 폭 대비 반값)
 const MAX_PULL = 70; // px, 최대 당김
 const MIN_PULL = 10; // px, 이보다 덜 당기면 발사 안 됨
 const STONE_R = 8; // 기본(도형) 돌 반지름
@@ -273,12 +280,45 @@ function SlingshotStage({
       P0: { x: 0, y: 0 },
       forkL: { x: 0, y: 0 },
       forkR: { x: 0, y: 0 },
-      char: { x: 0, y: 0, r: 1 },
+      char: { x: 0, headY: 0, bodyY: 0, halfW: 1 },
     };
     const cur = { x: 0, y: 0 }; // 돌의 현재 위치
     let busy = false; // 발사 진행 중
     let dragging = false;
     let raf = 0;
+
+    // P0 기준 당김 변위(dx,dy) → 발사 방향 단위벡터 + 세기 + 궤적 판정.
+    // 가이드 선과 실제 발사가 시작점(P0)·기울기·도달 거리까지 똑같이
+    // 나오도록 여기 한 곳에서만 계산한다.
+    function trajectory(dx: number, dy: number) {
+      const mag = Math.hypot(dx, dy) || 1;
+      const power = Math.min(mag / MAX_PULL, 1);
+      const dirx = -dx / mag;
+      const diry = -dy / mag;
+
+      const c = geom.char;
+      const up = -diry; // 광선의 위쪽 성분. P0 위의 피사체를 맞히려면 > 0
+
+      let isHit = false;
+      let isNearMiss = false;
+      let stopDist: number;
+
+      if (up > 0.05) {
+        // 당긴 힘 → 몸통(power 0) ~ 머리(power 1) 사이 높이에서 멈춘다.
+        const sBody = (geom.P0.y - c.bodyY) / up; // 몸통 높이까지 광선 거리
+        const sHead = (geom.P0.y - c.headY) / up; // 머리 높이까지 광선 거리
+        stopDist = Math.max(0, sBody + (sHead - sBody) * power);
+
+        const ix = geom.P0.x + dirx * stopDist; // 멈추는 지점의 x
+        const off = Math.abs(ix - c.x); // 몸 중심선에서 벗어난 정도
+        isHit = off <= c.halfW;
+        isNearMiss = !isHit && off <= c.halfW * 1.7;
+      } else {
+        stopDist = mag * 4; // 위를 안 겨냥 → 빗나가 화면 밖으로
+      }
+
+      return { dirx, diry, mag, power, isHit, isNearMiss, stopDist };
+    }
 
     function rel(r: DOMRect) {
       const o = svg!.getBoundingClientRect();
@@ -302,9 +342,10 @@ function SlingshotStage({
       if (tEl) {
         const t = rel(tEl.getBoundingClientRect());
         geom.char = {
-          x: t.x + t.w / 2,
-          y: t.y + t.h / 2,
-          r: (Math.min(t.w, t.h) / 2) * 0.55,
+          x: t.x + t.w * 0.5,
+          headY: t.y + t.h * HIT_HEAD_Y,
+          bodyY: t.y + t.h * HIT_BODY_Y,
+          halfW: t.w * HIT_HALF_W,
         };
       }
       if (!busy && !dragging) rest();
@@ -383,62 +424,49 @@ function SlingshotStage({
       el.classList.add(cls);
     }
 
-    function launch(dx: number, dy: number, mag: number) {
+    // dx/dy: onUp 에서 넘긴 P0 기준 당김 변위. trajectory 로 가이드 선과
+    // 완전히 동일한 방향·도달 지점을 산출한다.
+    function launch(dx: number, dy: number) {
+      const { dirx, diry, power, isHit, isNearMiss, stopDist } =
+        trajectory(dx, dy);
       busy = true;
-      const dirx = -dx / mag;
-      const diry = -dy / mag;
-      const power = Math.min(mag / MAX_PULL, 1);
       const speed = 340 + power * 520; // px/s
 
-      const toCx = geom.char.x - geom.P0.x;
-      const toCy = geom.char.y - geom.P0.y;
-      const along = toCx * dirx + toCy * diry;
-      const closeX = geom.P0.x + dirx * along;
-      const closeY = geom.P0.y + diry * along;
-      const distToChar = Math.hypot(geom.char.x - closeX, geom.char.y - closeY);
-      const isHit = along > 0 && distToChar <= geom.char.r;
-      const isNearMiss = !isHit && along > 0 && distToChar <= geom.char.r * 1.8;
-
-      let impactDist = 0;
-      if (isHit) {
-        const b = along;
-        const c = toCx * toCx + toCy * toCy - geom.char.r * geom.char.r;
-        impactDist = b - Math.sqrt(Math.max(0, b * b - c));
-      }
-
       let t0 = 0;
-      let dodged = false;
       const step = (ts: number) => {
         if (!t0) t0 = ts;
         const travelled = (speed * (ts - t0)) / 1000;
 
-        if (isHit && travelled >= impactDist) {
-          const ix = geom.P0.x + dirx * impactDist;
-          const iy = geom.P0.y + diry * impactDist;
+        // stopDist = 사거리/명중 지점. 여기 도달하면 돌이 멈춘다.
+        if (travelled >= stopDist) {
+          const ix = geom.P0.x + dirx * stopDist;
+          const iy = geom.P0.y + diry * stopDist;
           moveStone(ix, iy);
-          impactBurst(ix, iy);
-          playReaction(styles.flinch);
-          const dmg = Math.round(BASE_DMG + power * POWER_DMG);
-          useCharacterStore.getState().hitWithSlingshot(characterId, dmg);
-          floatText(ix, iy - 14, "-" + dmg);
+          if (isHit) {
+            impactBurst(ix, iy);
+            playReaction(styles.flinch);
+            const dmg = Math.round(BASE_DMG + power * POWER_DMG);
+            useCharacterStore.getState().hitWithSlingshot(characterId, dmg);
+            floatText(ix, iy - 14, "-" + dmg);
+          } else if (isNearMiss) {
+            playReaction(styles.dodge);
+            floatText(ix, iy - 30, "아깝다!");
+          }
           grab!.style.opacity = "0";
-          window.setTimeout(() => {
-            grab!.style.opacity = "1";
-            rest();
-            busy = false;
-          }, 600);
+          window.setTimeout(
+            () => {
+              grab!.style.opacity = "1";
+              rest();
+              busy = false;
+            },
+            isHit ? 600 : 300,
+          );
           return;
         }
 
         const px = geom.P0.x + dirx * travelled;
         const py = geom.P0.y + diry * travelled;
         moveStone(px, py);
-
-        if (isNearMiss && !dodged && travelled >= along) {
-          dodged = true;
-          playReaction(styles.dodge);
-          floatText(geom.char.x, geom.char.y - 60, "아깝다!");
-        }
 
         const o = svg!.getBoundingClientRect();
         if (px < -40 || px > o.width + 40 || py < -40 || py > o.height + 40) {
@@ -489,10 +517,13 @@ function SlingshotStage({
         const cx = geom.P0.x + dx;
         const cy = geom.P0.y + dy;
         setPouch(cx, cy);
-        attr(aim!, "x1", cx);
-        attr(aim!, "y1", cy);
-        attr(aim!, "x2", geom.P0.x - dx * 2.4);
-        attr(aim!, "y2", geom.P0.y - dy * 2.4);
+        // 가이드 선: 실제 발사와 동일하게 P0 에서 같은 방향으로,
+        // 돌이 멈추는(피사체에 맞는) 지점까지만 그린다.
+        const { dirx, diry, stopDist } = trajectory(dx, dy);
+        attr(aim!, "x1", geom.P0.x);
+        attr(aim!, "y1", geom.P0.y);
+        attr(aim!, "x2", geom.P0.x + dirx * stopDist);
+        attr(aim!, "y2", geom.P0.y + diry * stopDist);
       };
       const onUp = () => {
         dragging = false;
@@ -502,13 +533,12 @@ function SlingshotStage({
         aim!.style.opacity = "0";
         const dx = cur.x - geom.P0.x;
         const dy = cur.y - geom.P0.y;
-        const mag = Math.hypot(dx, dy);
-        if (mag < MIN_PULL) {
+        if (Math.hypot(dx, dy) < MIN_PULL) {
           rest();
           return;
         }
         snapBands();
-        launch(dx, dy, mag);
+        launch(dx, dy);
       };
       grab!.addEventListener("pointermove", onMove);
       grab!.addEventListener("pointerup", onUp);
