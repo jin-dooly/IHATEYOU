@@ -2,6 +2,35 @@
   position: relative;
   overflow: hidden;
 }
+
+.customizePanel {
+  margin-top: 16px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.charaterName {
+  margin: 8px;
+  input {
+    border: none;
+    border-bottom: 2px #d9d9d9 solid;
+    font-size: 16px;
+
+    &:focus {
+      outline: none;
+    }
+
+    &::placeholder {
+      color: #b5b5b5;
+    }
+  }
+}
+
+.characterPreview {
+  margin: 40px 0;
+}
+
 .characterFigure {
   z-index: 0;
   position: absolute;
@@ -19,4 +48,8 @@
   + div {
     z-index: 1;
   }
+}
+
+.nextButton {
+  margin-top: auto;
 }

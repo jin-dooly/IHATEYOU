@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCharacterStore } from "../store/characterStore";
 import {
+  MAX_CHARACTERS,
   FIXED_SLOTS,
   ITEM_SIZE,
   SCATTER_WIDTH,
@@ -35,6 +36,13 @@ export default function Home() {
     navigate(`/characters/${selectedId}/room`);
   }
 
+  function handleGoToCreate() {
+    if (MAX_CHARACTERS <= characters.length) {
+      return;
+    }
+    navigate("/characters/create");
+  }
+
   useEffect(() => {
     if (characters.length > 0) return;
     const defaultConfig: CharacterConfig = {
@@ -56,7 +64,8 @@ export default function Home() {
         <h1>I HATE YOU</h1>
         <button
           className={"right-button"}
-          onClick={() => navigate("/characters/create")}
+          onClick={handleGoToCreate}
+          disabled={MAX_CHARACTERS <= characters.length}
         >
           +
         </button>

@@ -7,6 +7,7 @@ import { FaceCanvas } from "../components/character/FaceCanvas";
 import { CharacterConfigPicker } from "../components/character/CharacterConfigPicker";
 import { CharacterFigure } from "../components/character/CharacterFigure";
 import styles from "./CharacterCreate.module.scss";
+import Button from "../components/common/Button";
 
 type Step = "face" | "customize";
 
@@ -24,6 +25,14 @@ export default function CharacterCreate() {
   const createCharacter = useCharacterStore((s) => s.createCharacter);
   const navigate = useNavigate();
 
+  function handleBack() {
+    if (step === "customize") {
+      navigate(-1);
+    } else {
+      setStep("customize");
+    }
+  }
+
   function handleCustomDone() {
     setStep("face");
   }
@@ -38,27 +47,28 @@ export default function CharacterCreate() {
 
   return (
     <div className={"page " + styles.page}>
-      <div className="step-header">
-        {step === "customize" && (
-          <button onClick={() => setStep("face")}>←</button>
-        )}
-        <span>{step === "customize" ? "1 / 2" : "2 / 2"}</span>
+      <div className="header">
+        {<button onClick={handleBack}>◀</button>}
+        <h1>캐릭터 생성 ({step === "customize" ? "1/2" : "2/2"})</h1>
       </div>
 
       {step === "customize" && (
-        <div className="customize-panel">
+        <div className={styles.customizePanel}>
           {/* 이름 설정 영역 */}
-          <div className="charater-name">
+          <div className={styles.charaterName}>
             <input
               className="name-input"
               placeholder="이름을 입력하세요"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              autoFocus
             />
           </div>
-          <div className="character-preview">
+
+          <div className={styles.characterPreview}>
             <CharacterFigure {...config} />
           </div>
+
           <CharacterConfigPicker
             bodyColor={config.bodyColor}
             onBodyColorChange={(bodyColor) =>
@@ -73,13 +83,13 @@ export default function CharacterCreate() {
               setConfig((p) => ({ ...p, headShape }))
             }
           />
-          <button
-            className="primary-button"
+          <Button
+            className={styles.nextButton}
             onClick={handleCustomDone}
             disabled={!name.trim()}
           >
-            완료
-          </button>
+            다음
+          </Button>
         </div>
       )}
 

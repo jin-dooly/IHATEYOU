@@ -57,7 +57,7 @@ export function FaceCanvas({ onNext }: FaceCanvasProps) {
     const context = canvas.getContext("2d"); // "그리기 메서드와 속성을 갖는" 2차원 드로잉 컨텍스트 참조
     if (!context) return;
     context.strokeStyle = "black"; // line 색
-    context.lineWidth = 5; // line 굵기
+    context.lineWidth = 15; // line 굵기
     context.lineJoin = "round"; // 선 연결 모양(기본 값 miter 일반 모양)
     context.lineCap = "round"; // 선 끝 모양
     context.save(); // 드로잉 컨텍스트 설정 저장
