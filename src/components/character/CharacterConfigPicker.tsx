@@ -34,12 +34,17 @@ export function CharacterConfigPicker({
           type="color"
           id="body-color"
           onChange={(e) => onBodyColorChange(e.target.value)}
-          defaultValue={"#fff"}
+          defaultValue={bodyColor}
         />
       </div>
       <div className={styles.lowItem}>
         <label htmlFor="hair-color">머리카락 색상</label>
-        <input type="color" id="hair-color" />
+        <input
+          type="color"
+          id="hair-color"
+          onChange={(e) => onHairColorChange(e.target.value)}
+          defaultValue={hairColor}
+        />
       </div>
       <div className={styles.hairSection}>
         <div className={styles.hairGrid}>

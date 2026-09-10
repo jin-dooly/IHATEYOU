@@ -13,7 +13,7 @@
 .faceCanvasHeader {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
 }
 
 .faceCanvasTitle {
@@ -23,11 +23,13 @@
 
 .historyControls {
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
 }
 
-.undoButton {
+.undoButton,
+.toolButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -45,4 +47,17 @@
     color: #d9d9d9;
     cursor: default;
   }
+}
+
+// 선택된 도구(펜/지우개)
+.toolButton.active {
+  border-color: #1c1c1c;
+  background: #f4f4f4;
+}
+
+.controlDivider {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 2px;
+  background: #e0e0e0;
 }
