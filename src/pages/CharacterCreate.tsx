@@ -61,6 +61,7 @@ export default function CharacterCreate() {
               placeholder="이름을 입력하세요"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              maxLength={20}
               autoFocus
             />
           </div>
