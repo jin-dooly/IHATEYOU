@@ -1,13 +1,13 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
+  --text: #6b6b6b;
+  --text-h: #111111;
   --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
+  --border: #e5e5e5;
+  --code-bg: #f4f4f4;
+  --accent: #444444;
+  --accent-bg: rgba(0, 0, 0, 0.06);
+  --accent-border: rgba(0, 0, 0, 0.35);
+  --social-bg: rgba(244, 244, 244, 0.5);
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
@@ -32,15 +32,15 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
+    --text: #a3a3a3;
+    --text-h: #f4f4f4;
+    --bg: #18181a;
+    --border: #2e2e2e;
+    --code-bg: #1f1f1f;
+    --accent: #b3b3b3;
+    --accent-bg: rgba(255, 255, 255, 0.1);
+    --accent-border: rgba(255, 255, 255, 0.4);
+    --social-bg: rgba(47, 47, 47, 0.5);
     --shadow:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
   }
@@ -61,7 +61,7 @@
 body {
   /* width: 100%; */
   margin: 0;
-  background-color: #6b637523;
+  background-color: #6b6b6b23;
   /* clip-path 는 그려지는 픽셀만 잘라줄 뿐 스크롤 가능 영역 계산까지는
      막지 못한다 — CharacterRoom 의 흔들리는 캐릭터/말풍선이 화면 밖으로
      (안 보이게) 넘어가도 body 는 그만큼 가로로 스크롤 가능하다고 계산해서
