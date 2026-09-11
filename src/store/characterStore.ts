@@ -6,7 +6,11 @@ import type {
   HitLogEntry,
 } from "../types/character";
 import { assignSlot } from "../utils/scatterLayout";
-import { computeHpRecovery, computeHearingRecovery } from "../utils/recovery";
+import {
+  computeHpRecovery,
+  computeHearingRecovery,
+  computeHairRegrowCount,
+} from "../utils/recovery";
 
 interface CharacterStore {
   characters: Record<string, Character>;
@@ -31,6 +35,8 @@ interface CharacterStore {
   // 마지막 회복 시점 이후 경과 시간만큼 HP / 청력 을 자동 회복해 반영
   settleHpRecovery: (id: string) => void;
   settleHearingRecovery: (id: string) => void;
+  // 뽑힌 지 HAIR_REGROW_INTERVAL_HOURS 지난 가닥들을 자동으로 되살림
+  settleHairRegrow: (id: string) => void;
 }
 
 const nowIso = () => new Date().toISOString();
@@ -331,6 +337,15 @@ export const useCharacterStore = create<CharacterStore>()(
             },
           };
         }),
+
+      // regrowStrands 를 실제로 발동시키는 쪽 — computeHairRegrowCount 로 몇 가닥이
+      // 다시 자랄 시점인지 계산해서 그만큼만 되살린다 (settleHpRecovery 와 동일 패턴)
+      settleHairRegrow: (id) => {
+        const c = get().characters[id];
+        if (!c) return;
+        const count = computeHairRegrowCount(c);
+        if (count > 0) get().regrowStrands(id, count);
+      },
 
       recoverHearing: (id, amount) =>
         set((s) => {

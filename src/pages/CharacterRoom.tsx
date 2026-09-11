@@ -3,11 +3,13 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { useCharacterStore } from "../store/characterStore";
 import { hairRemainingPercent } from "../types/character";
+import { getHairStyle, parseStrandAnchor } from "../constants/hairStyles";
 import { CharacterFigure } from "../components/character/CharacterFigure";
 import styles from "./CharacterRoom.module.scss";
 import Button from "../components/common/Button";
@@ -28,11 +30,13 @@ function useStatRecovery(id: string | undefined) {
   const settleHearingRecovery = useCharacterStore(
     (s) => s.settleHearingRecovery,
   );
+  const settleHairRegrow = useCharacterStore((s) => s.settleHairRegrow);
   useEffect(() => {
     if (!id) return;
     const tick = () => {
       settleHpRecovery(id);
       settleHearingRecovery(id);
+      settleHairRegrow(id);
     };
     tick();
     const iv = window.setInterval(tick, 60000);
@@ -46,7 +50,7 @@ function useStatRecovery(id: string | undefined) {
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("focus", tick);
     };
-  }, [id, settleHpRecovery, settleHearingRecovery]);
+  }, [id, settleHpRecovery, settleHearingRecovery, settleHairRegrow]);
 }
 
 export default function CharacterRoom() {
@@ -58,15 +62,18 @@ export default function CharacterRoom() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("slingshot");
   const [bubbleOpen, setBubbleOpen] = useState(false);
+  const [heldStrandIndex, setHeldStrandIndex] = useState<number | null>(null);
   const charWrapRef = useRef<HTMLDivElement>(null);
 
   useStatRecovery(id);
 
   if (!id || !character) return <Navigate to="/characters" replace />;
 
-  const hairPct = hairRemainingPercent(character);
+  const hairPct = hairRemainingPercent(
+    character,
+    getHairStyle(character.config.hair.styleId).strands.length,
+  );
   const latestBubble = character.speechBubbles.at(-1);
-  console.log("latestBubble", latestBubble);
 
   const meter =
     mode === "slingshot"
@@ -149,7 +156,18 @@ export default function CharacterRoom() {
         )}
 
         <div ref={charWrapRef} className={styles.characterWrap}>
-          <CharacterFigure {...character.config} className={styles.character} />
+          <CharacterFigure
+            {...character.config}
+            heldStrandIndex={mode === "hair" ? heldStrandIndex : null}
+            className={styles.character}
+          />
+          {mode === "hair" && (
+            <HairPullStage
+              characterId={id}
+              targetRef={charWrapRef}
+              onGrabChange={setHeldStrandIndex}
+            />
+          )}
         </div>
 
         {mode === "slingshot" && (
@@ -598,6 +616,143 @@ function SlingshotStage({
         </g>
       </svg>
     </>
+  );
+}
+
+const HAIR_PULL_THRESHOLD = 22; // 이만큼 당겨야 뽑힘 확정 (모자라면 스냅백)
+
+// 이전 버전의 진짜 문제: 가닥의 "두피 쪽 시작점"에서만 반경 몇 px 안쪽으로
+// 클릭해야 잡히는 방식이었다 — 정작 눈에 보이는 머리카락은 그 시작점에서
+// 한참 떨어진 곳까지 곡선으로 뻗어 있어서, 보이는 머리카락을 클릭해도
+// 대부분 반경 밖이라 아무것도 안 잡혔다.
+//
+// 그래서 이번엔 좌표를 화면 px 로 직접 변환하지 않고, 오버레이 svg 자체에
+// CharacterFigure 와 똑같은 viewBox(0 0 160 222)를 줘서 두 svg 를 완전히
+// 겹쳐지게 만들었다. 그러면 가닥의 원본 path(d) 를 좌표 변환 없이 그대로
+// 재사용해서 "보이는 곡선 그 자체"를 히트 영역으로 쓸 수 있다
+// (fill 없이 굵은 투명 stroke + pointer-events: stroke).
+function HairPullStage({
+  characterId,
+  targetRef,
+  onGrabChange,
+}: {
+  characterId: string;
+  targetRef: RefObject<HTMLDivElement | null>;
+  // 지금 당기는 중인 가닥의 index (놓으면 null) — CharacterFigure 가 그 가닥을
+  // 잠깐 안 그리게(뽑는 동안 안 보이게) 하는 데 쓴다.
+  onGrabChange: (index: number | null) => void;
+}) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const lineRef = useRef<SVGLineElement>(null);
+  const fxRef = useRef<SVGGElement>(null);
+
+  const hair = useCharacterStore((s) => s.characters[characterId]?.config.hair);
+
+  // 화면(클라이언트) 좌표 → 이 svg 의 로컬(viewBox) 좌표. getScreenCTM 을 쓰면
+  // 실제 렌더링 크기/스케일과 무관하게 항상 정확하다 (수동 비율 계산 불필요).
+  function toLocal(svg: SVGSVGElement, clientX: number, clientY: number) {
+    const pt = svg.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return { x: 0, y: 0 };
+    const p = pt.matrixTransform(ctm.inverse());
+    return { x: p.x, y: p.y };
+  }
+
+  function floatText(x: number, y: number, msg: string) {
+    const fx = fxRef.current;
+    if (!fx) return;
+    const NS = "http://www.w3.org/2000/svg";
+    const t = document.createElementNS(NS, "text");
+    t.setAttribute("x", String(x));
+    t.setAttribute("y", String(y));
+    t.textContent = msg;
+    t.setAttribute("class", styles.floatText);
+    fx.appendChild(t);
+    window.setTimeout(() => t.remove(), 850);
+  }
+
+  // 새총 playReaction 과 동일한 흔들림 효과 재사용 (같은 targetRef, 같은 클래스)
+  function playShake() {
+    const el = targetRef.current;
+    if (!el) return;
+    el.classList.remove(styles.flinch);
+    void el.offsetWidth; // 리플로우 강제 → 애니메이션 재시작
+    el.classList.add(styles.flinch);
+  }
+
+  function handleGrab(
+    e: ReactPointerEvent<SVGPathElement>,
+    index: number,
+    anchor: { x: number; y: number },
+  ) {
+    const svg = svgRef.current;
+    const line = lineRef.current;
+    if (!svg || !line) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    onGrabChange(index); // 잡고 있는 동안 이 가닥은 CharacterFigure 에서 숨김
+
+    line.style.opacity = "1";
+    line.setAttribute("x1", String(anchor.x));
+    line.setAttribute("y1", String(anchor.y));
+    line.setAttribute("x2", String(anchor.x));
+    line.setAttribute("y2", String(anchor.y));
+
+    const onMove = (ev: PointerEvent) => {
+      const p = toLocal(svg, ev.clientX, ev.clientY);
+      line.setAttribute("x2", String(p.x));
+      line.setAttribute("y2", String(p.y));
+    };
+    const onUp = (ev: PointerEvent) => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      line.style.opacity = "0";
+      onGrabChange(null); // 성공(영구 삭제)이든 스냅백이든 임시 숨김은 해제
+
+      const p = toLocal(svg, ev.clientX, ev.clientY);
+      const dx = p.x - anchor.x;
+      const dy = p.y - anchor.y;
+      if (Math.hypot(dx, dy) >= HAIR_PULL_THRESHOLD) {
+        useCharacterStore.getState().pluckStrand(characterId, index);
+        playShake();
+        floatText(anchor.x, anchor.y - 6, "쏙!");
+      }
+      // 못 미치면 아무 상태 변화 없이 그냥 선만 사라짐(스냅백)
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  }
+
+  if (!hair) return null;
+  const style = getHairStyle(hair.styleId);
+  const removed = new Set(hair.removedStrands.map((r) => r.index));
+
+  return (
+    <svg
+      ref={svgRef}
+      className={styles.hairPullOverlay}
+      viewBox="0 0 160 222"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <line ref={lineRef} className={styles.hairPullLine} />
+      <g ref={fxRef} />
+      {style.strands.map((strand, index) => {
+        if (removed.has(index)) return null;
+        const anchor = parseStrandAnchor(strand.d);
+        if (!anchor) return null;
+        return (
+          <path
+            key={index}
+            d={strand.d}
+            className={styles.hairHitPath}
+            onPointerDown={(e) => handleGrab(e, index, anchor)}
+          />
+        );
+      })}
+    </svg>
   );
 }
 

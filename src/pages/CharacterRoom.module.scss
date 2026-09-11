@@ -20,6 +20,7 @@
 }
 
 .characterWrap {
+  position: relative; // HairPullStage 오버레이(inset:0)의 기준
   width: fit-content;
   transform-origin: 50% 50%;
 }
@@ -226,6 +227,41 @@
     stroke-width: 1.5;
     pointer-events: none;
   }
+}
+
+// characterWrap 위에 CharacterFigure 와 완전히 겹쳐지는 오버레이.
+// viewBox 가 CharacterFigure 와 동일(0 0 160 222)해서 좌표 변환 없이
+// 가닥 path(d) 를 그대로 재사용할 수 있다.
+.hairPullOverlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none; // 가닥 히트 path(hairHitPath)만 잡히도록
+}
+
+// 가닥 하나하나의 실제 곡선을 그대로 히트 영역으로 쓴다 — 눈에 보이는
+// 머리카락 어디를 클릭해도 그 가닥이 잡히도록. fill 은 없고 stroke 만
+// (투명하지만 두껍게) 판정해서 곡선을 따라 넓게 잡힌다.
+.hairHitPath {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  pointer-events: stroke;
+  cursor: grab;
+  touch-action: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.hairPullLine {
+  stroke: #4a3524;
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0;
 }
 
 .floatText {

@@ -1,30 +1,20 @@
 import styles from "./CharacterConfigPicker.module.scss";
-
-// headShape(=머리카락 모양) 옵션. id 는 config.headShape 에 저장되는 값이고
-// label 은 스크린리더용. 썸네일 SVG 는 스타일별로 교체하면 된다.
-const HEAD_STYLES: { id: string; label: string }[] = [
-  { id: "round", label: "기본" },
-  { id: "wave", label: "물결" },
-  { id: "short", label: "숏컷" },
-  { id: "curly", label: "곱슬" },
-  { id: "bang", label: "앞머리" },
-  { id: "long", label: "긴머리" },
-];
+import { HAIR_STYLES } from "../../constants/hairStyles";
 
 export function CharacterConfigPicker({
   bodyColor,
   onBodyColorChange,
   hairColor,
   onHairColorChange,
-  headShape,
-  onHeadShapeChange,
+  hairStyleId,
+  onHairStyleChange,
 }: {
   bodyColor: string;
   onBodyColorChange: (color: string) => void;
   hairColor: string;
   onHairColorChange: (color: string) => void;
-  headShape: string;
-  onHeadShapeChange: (headShape: string) => void;
+  hairStyleId: string;
+  onHairStyleChange: (styleId: string) => void;
 }) {
   return (
     <div className={styles.container}>
@@ -48,8 +38,8 @@ export function CharacterConfigPicker({
       </div>
       <div className={styles.hairSection}>
         <div className={styles.hairGrid}>
-          {HEAD_STYLES.map((s) => {
-            const selected = headShape === s.id;
+          {HAIR_STYLES.map((s) => {
+            const selected = hairStyleId === s.id;
             return (
               <button
                 key={s.id}
@@ -58,7 +48,7 @@ export function CharacterConfigPicker({
                 className={`${styles.hairOption} ${
                   selected ? styles.selected : ""
                 }`}
-                onClick={() => onHeadShapeChange(s.id)}
+                onClick={() => onHairStyleChange(s.id)}
               >
                 {/* TODO: 스타일별 썸네일 SVG 로 교체 */}
                 <svg

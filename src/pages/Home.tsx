@@ -50,7 +50,7 @@ export default function Home() {
       bodyColor: "#CFCCFF",
       faceImage: "",
       hair: {
-        styleId: "default",
+        styleId: "slickback",
         removedStrands: [],
         color: "#000",
       },

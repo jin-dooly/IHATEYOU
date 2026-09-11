@@ -15,7 +15,7 @@ const FALLBACK_CONFIG: CharacterConfig = {
   headShape: "round",
   bodyColor: "#ffffff",
   faceImage: "",
-  hair: { styleId: "buzzcut", color: "#000", removedStrands: [] },
+  hair: { styleId: "slickback", color: "#000", removedStrands: [] },
 };
 
 export default function CharacterEdit() {
@@ -120,9 +120,9 @@ export default function CharacterEdit() {
             onHairColorChange={(color) =>
               setConfig((p) => ({ ...p, hair: { ...p.hair, color } }))
             }
-            headShape={config.headShape}
-            onHeadShapeChange={(headShape) =>
-              setConfig((p) => ({ ...p, headShape }))
+            hairStyleId={config.hair.styleId}
+            onHairStyleChange={(styleId) =>
+              setConfig((p) => ({ ...p, hair: { ...p.hair, styleId } }))
             }
           />
 

@@ -1,18 +1,27 @@
 import type { ComponentPropsWithoutRef } from "react";
 import type { CharacterConfig } from "../../types/character";
+import { getHairStyle } from "../../constants/hairStyles";
 
 interface Props extends CharacterConfig, ComponentPropsWithoutRef<"svg"> {
   size?: number;
   faded?: boolean;
+  // 뽑는 중인 가닥의 index. 영구 삭제(removedStrands)와 별개로, 드래그하는
+  // 동안 잠깐 안 보이게 하기 위한 값(뽑기 성공/취소 여부와 무관하게 임시).
+  heldStrandIndex?: number | null;
 }
 
 export function CharacterFigure({
   faceImage,
   bodyColor,
+  headShape: _headShape, // 더 이상 헤어스타일 선택에 안 쓰임(레거시 필드) — hair.styleId 로 통일
+  hair,
   size = 160,
   faded = false,
+  heldStrandIndex = null,
   ...res
 }: Props) {
+  const hairStyle = getHairStyle(hair.styleId);
+  const removedStrands = new Set(hair.removedStrands.map((r) => r.index));
   return (
     <svg
       {...res}
@@ -89,6 +98,20 @@ export function CharacterFigure({
           clipPath="url(#face-clip)"
         />
       )}
+
+      {/* 머리카락 — 뽑힌(removedStrands) 가닥과, 지금 당기는 중인(heldStrandIndex)
+          가닥은 그리지 않는다 */}
+      <g
+        stroke={hair.color}
+        strokeWidth={hairStyle.strokeWidth ?? 3}
+        strokeLinecap="round"
+      >
+        {hairStyle.strands.map((strand, index) =>
+          removedStrands.has(index) || index === heldStrandIndex ? null : (
+            <path key={index} d={strand.d} />
+          ),
+        )}
+      </g>
     </svg>
   );
 }
