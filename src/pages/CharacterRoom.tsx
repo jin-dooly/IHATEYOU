@@ -18,8 +18,8 @@ import slingshotSvg from "../assets/Slingshot.svg";
 type Mode = "slingshot" | "hair" | "mic";
 
 const TABS: { key: Mode; label: string }[] = [
-  { key: "slingshot", label: "새총 날리기" },
   { key: "hair", label: "머리카락 뽑기" },
+  { key: "slingshot", label: "새총 날리기" },
   { key: "mic", label: "소리지르기" },
 ];
 
@@ -53,6 +53,56 @@ function useStatRecovery(id: string | undefined) {
   }, [id, settleHpRecovery, settleHearingRecovery, settleHairRegrow]);
 }
 
+// 새총 모드일 때 캐릭터가 가만히 있지 않고 계속 이리저리 흔들리며 움직이게
+// 한다 (조준을 어렵게 만들어 덜 밋밋하게, 당기고 날아가는 중엔 멈추지 않음).
+// transform 은 이 훅 전용으로만 쓰고, flinch/dodge 피격 애니메이션은 안쪽
+// (charWrapRef)에서 그대로 처리해 서로 덮어쓰지 않게 분리했다.
+//
+// 명중 여부는 "쏜 순간"이 아니라 돌이 날아가는 매 순간 실시간으로 확인한다
+// (SlingshotStage 의 launch()). 다만 딱 맞은 순간만큼은 setPaused(true)로
+// 잠깐(호출부에서 0.5초) 멈춰서 "명중 타격감"을 준다 — 멈춘 시간은 애니메이션
+// 경과시간에서 빼서 재개할 때 위치가 튀지 않게 한다.
+function useCharacterWander(active: boolean) {
+  const wanderRef = useRef<HTMLDivElement>(null);
+  const pausedRef = useRef(false);
+
+  useEffect(() => {
+    const el = wanderRef.current;
+    if (!el) return;
+    if (!active) {
+      el.style.transform = "translate(0px, 0px)";
+      return;
+    }
+    const AMP_X = 110; // px, 좌우로 움직이는 폭
+    const AMP_Y = 40; // px, 위아래로 움직이는 폭
+    const SPEED_X = 2; // rad/s
+    const SPEED_Y = 1.4;
+    let elapsed = 0; // 멈춘 시간은 빼고 누적한 경과시간(ms)
+    let last = performance.now();
+    let raf = 0;
+    const step = (now: number) => {
+      const dt = now - last;
+      last = now;
+      if (!pausedRef.current) {
+        elapsed += dt;
+        const t = elapsed / 1000;
+        const x = Math.sin(t * SPEED_X) * AMP_X;
+        const y = Math.sin(t * SPEED_Y + 1.3) * AMP_Y; // 위상차 → 원 대신 리사주 곡선처럼 자연스럽게
+        el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [active]);
+
+  const setPaused = (paused: boolean) => {
+    pausedRef.current = paused;
+  };
+
+  return [wanderRef, setPaused] as const;
+}
+
 export default function CharacterRoom() {
   const { id } = useParams<{ id: string }>();
   const character = useCharacterStore((s) =>
@@ -60,12 +110,23 @@ export default function CharacterRoom() {
   );
   const refillHair = useCharacterStore((s) => s.refillHair);
   const navigate = useNavigate();
-  const [mode, setMode] = useState<Mode>("slingshot");
+  const [mode, setMode] = useState<Mode>("hair");
   const [bubbleOpen, setBubbleOpen] = useState(false);
   const [heldStrandIndex, setHeldStrandIndex] = useState<number | null>(null);
   const charWrapRef = useRef<HTMLDivElement>(null);
+  const [wanderRef, setWanderPaused] = useCharacterWander(mode === "slingshot");
+  const hitFreezeTimeoutRef = useRef<number>(undefined);
 
   useStatRecovery(id);
+
+  // 새총이 딱 맞았을 때만 0.5초 캐릭터를 멈춰서 타격감을 준다
+  function handleSlingshotHit() {
+    setWanderPaused(true);
+    window.clearTimeout(hitFreezeTimeoutRef.current);
+    hitFreezeTimeoutRef.current = window.setTimeout(() => {
+      setWanderPaused(false);
+    }, 500);
+  }
 
   if (!id || !character) return <Navigate to="/characters" replace />;
 
@@ -120,58 +181,71 @@ export default function CharacterRoom() {
       <div className={styles.roomStage}>
         {mode === "mic" && <DecibelMeter />}
 
-        {bubbleOpen ? (
-          <SpeechBubbleInput
-            existing={latestBubble?.text}
-            onSubmit={(text) => {
-              useCharacterStore.getState().addSpeechBubble(id, text);
-              setBubbleOpen(false);
-            }}
-            onDelete={
-              latestBubble
-                ? () => {
-                    useCharacterStore
-                      .getState()
-                      .removeSpeechBubble(id, latestBubble.id);
-                    setBubbleOpen(false);
-                  }
-                : undefined
-            }
-          />
-        ) : latestBubble?.text ? (
-          <div
-            className={styles.speechBubbleBox}
-            onClick={() => setBubbleOpen((v) => !v)}
-          >
-            {latestBubble.text}
-          </div>
-        ) : (
-          <button
-            className="bubble-icon"
-            onClick={() => setBubbleOpen((v) => !v)}
-            aria-label="말풍선"
-          >
-            💬
-          </button>
-        )}
-
-        <div ref={charWrapRef} className={styles.characterWrap}>
-          <CharacterFigure
-            {...character.config}
-            heldStrandIndex={mode === "hair" ? heldStrandIndex : null}
-            className={styles.character}
-          />
-          {mode === "hair" && (
-            <HairPullStage
-              characterId={id}
-              targetRef={charWrapRef}
-              onGrabChange={setHeldStrandIndex}
+        {/* 새총 모드에서는 말풍선 생성/수정/삭제 불가 — 이미 등록된 말풍선이
+            있으면 아래 wanderRef 안에서 읽기 전용으로만 보여준다(캐릭터와
+            같이 움직이도록) */}
+        {mode !== "slingshot" &&
+          (bubbleOpen ? (
+            <SpeechBubbleInput
+              existing={latestBubble?.text}
+              onSubmit={(text) => {
+                useCharacterStore.getState().addSpeechBubble(id, text);
+                setBubbleOpen(false);
+              }}
+              onDelete={
+                latestBubble
+                  ? () => {
+                      useCharacterStore
+                        .getState()
+                        .removeSpeechBubble(id, latestBubble.id);
+                      setBubbleOpen(false);
+                    }
+                  : undefined
+              }
             />
+          ) : latestBubble?.text ? (
+            <div
+              className={styles.speechBubbleBox}
+              onClick={() => setBubbleOpen((v) => !v)}
+            >
+              {latestBubble.text}
+            </div>
+          ) : (
+            <button
+              className="bubble-icon"
+              onClick={() => setBubbleOpen((v) => !v)}
+              aria-label="말풍선"
+            >
+              💬
+            </button>
+          ))}
+
+        <div ref={wanderRef} className={styles.characterWander}>
+          {mode === "slingshot" && latestBubble?.text && (
+            <div className={styles.speechBubbleBox}>{latestBubble.text}</div>
           )}
+          <div ref={charWrapRef} className={styles.characterWrap}>
+            <CharacterFigure
+              {...character.config}
+              heldStrandIndex={mode === "hair" ? heldStrandIndex : null}
+              className={styles.character}
+            />
+            {mode === "hair" && (
+              <HairPullStage
+                characterId={id}
+                targetRef={charWrapRef}
+                onGrabChange={setHeldStrandIndex}
+              />
+            )}
+          </div>
         </div>
 
         {mode === "slingshot" && (
-          <SlingshotStage characterId={id} targetRef={charWrapRef} />
+          <SlingshotStage
+            characterId={id}
+            targetRef={charWrapRef}
+            onHit={handleSlingshotHit}
+          />
         )}
       </div>
 
@@ -255,6 +329,11 @@ const STONE_SIZE = 20; // 이미지 돌로 교체 시 한 변 길이(px)
 const GRAB_R = 24; // 투명 잡기 영역 반경 (드래그 편하게)
 const BASE_DMG = 1; // 최소 데미지
 const POWER_DMG = 2; // 풀 당김 시 추가 데미지
+// 빗나갔을 때 결과를 화면 밖까지 안 기다리고 빨리 보여주기 위한 값들.
+// 한 번이라도 halfW*NEAR_MISS_ZONE_MULT 이내로 들어왔다가(=근처를 스쳤다가)
+// 최근접 지점보다 PAST_PEAK_MARGIN px 만큼 더 멀어지면 그 자리에서 바로 확정.
+const NEAR_MISS_ZONE_MULT = 3;
+const PAST_PEAK_MARGIN = 10; // px
 
 // 돌맹이를 나중에 이미지로 교체하려면:
 //   import stoneUrl from "../assets/stone.svg"; (또는 .png)
@@ -265,10 +344,12 @@ const DEFAULT_STONE_SRC: string | null = null;
 function SlingshotStage({
   characterId,
   targetRef,
+  onHit,
   stoneSrc = DEFAULT_STONE_SRC ?? undefined,
 }: {
   characterId: string;
   targetRef: RefObject<HTMLDivElement | null>;
+  onHit: () => void; // 딱 명중했을 때(근접 실패 제외) 호출 — 타격감용 잠깐 멈춤 등에 사용
   stoneSrc?: string;
 }) {
   const frameRef = useRef<HTMLImageElement>(null);
@@ -306,8 +387,12 @@ function SlingshotStage({
     let raf = 0;
 
     // P0 기준 당김 변위(dx,dy) → 발사 방향 단위벡터 + 세기 + 궤적 판정.
-    // 가이드 선과 실제 발사가 시작점(P0)·기울기·도달 거리까지 똑같이
-    // 나오도록 여기 한 곳에서만 계산한다.
+    // 조준 중(가이드 선) 미리보기 전용 — 방향/세기와, "지금 이 순간" 겨냥으로
+    // 대략 어디까지 날아갈지의 길이만 계산한다. 실제 명중 여부는 여기서
+    // 정하지 않는다 — 캐릭터가 계속 움직이므로 launch() 가 발사 후 매 프레임
+    // 그 시점의 실시간 위치와 충돌 검사를 한다 (그래야 화면과 판정이 항상
+    // 일치한다. 발사 순간에 한 번만 계산하면, 날아가는 동안 캐릭터가 움직여
+    // "빗나간 것처럼 보이는데 맞았다고 표시" 되는 불일치가 생긴다).
     function trajectory(dx: number, dy: number) {
       const mag = Math.hypot(dx, dy) || 1;
       const power = Math.min(mag / MAX_PULL, 1);
@@ -315,32 +400,47 @@ function SlingshotStage({
       const diry = -dy / mag;
 
       const c = geom.char;
-      const up = -diry; // 광선의 위쪽 성분. P0 위의 피사체를 맞히려면 > 0
-
-      let isHit = false;
-      let isNearMiss = false;
-      let stopDist: number;
-
+      const up = -diry; // 광선의 위쪽 성분. P0 위의 피사체를 겨냥하는 중이면 > 0
+      let previewDist: number;
       if (up > 0.05) {
-        // 당긴 힘 → 몸통(power 0) ~ 머리(power 1) 사이 높이에서 멈춘다.
-        const sBody = (geom.P0.y - c.bodyY) / up; // 몸통 높이까지 광선 거리
-        const sHead = (geom.P0.y - c.headY) / up; // 머리 높이까지 광선 거리
-        stopDist = Math.max(0, sBody + (sHead - sBody) * power);
-
-        const ix = geom.P0.x + dirx * stopDist; // 멈추는 지점의 x
-        const off = Math.abs(ix - c.x); // 몸 중심선에서 벗어난 정도
-        isHit = off <= c.halfW;
-        isNearMiss = !isHit && off <= c.halfW * 1.7;
+        // 당긴 힘 → 몸통(power 0) ~ 머리(power 1) 사이 높이까지의 길이
+        const sBody = (geom.P0.y - c.bodyY) / up;
+        const sHead = (geom.P0.y - c.headY) / up;
+        previewDist = Math.max(0, sBody + (sHead - sBody) * power);
       } else {
-        stopDist = mag * 4; // 위를 안 겨냥 → 빗나가 화면 밖으로
+        previewDist = mag * 4; // 위를 안 겨냥 → 화면 밖까지 길게
       }
 
-      return { dirx, diry, mag, power, isHit, isNearMiss, stopDist };
+      return { dirx, diry, mag, power, previewDist };
+    }
+
+    // launch() 전용: 지금(실시간) 캐릭터 위치 기준으로 (px,py) 가 명중권 안인지.
+    // power 로 정해지는 높이(몸통~머리)는 발사 시점 그대로 고정하되, 그 높이
+    // 자체(c.bodyY/c.headY)와 중심 x(c.x)는 매 프레임 최신값을 쓴다.
+    function hitTestAt(px: number, py: number, power: number) {
+      const c = geom.char;
+      const bandY = c.bodyY + (c.headY - c.bodyY) * power;
+      return Math.hypot(px - c.x, py - bandY);
     }
 
     function rel(r: DOMRect) {
       const o = svg!.getBoundingClientRect();
       return { x: r.left - o.left, y: r.top - o.top, w: r.width, h: r.height };
+    }
+
+    // 캐릭터(피사체)가 계속 움직이므로(useCharacterWander) geom.char 는
+    // measure() 와 별개로 매 프레임 따로 갱신한다 — 조준 중에도, 가만히
+    // 있을 때도 항상 "지금 실제로 있는 자리"를 겨냥하도록.
+    function measureChar() {
+      const tEl = targetRef.current;
+      if (!tEl) return;
+      const t = rel(tEl.getBoundingClientRect());
+      geom.char = {
+        x: t.x + t.w * 0.5,
+        headY: t.y + t.h * HIT_HEAD_Y,
+        bodyY: t.y + t.h * HIT_BODY_Y,
+        halfW: t.w * HIT_HALF_W,
+      };
     }
 
     function measure() {
@@ -356,16 +456,7 @@ function SlingshotStage({
       };
       geom.P0 = { x: f.x + POUCH_RATIO.x * f.w, y: f.y + POUCH_RATIO.y * f.h };
 
-      const tEl = targetRef.current;
-      if (tEl) {
-        const t = rel(tEl.getBoundingClientRect());
-        geom.char = {
-          x: t.x + t.w * 0.5,
-          headY: t.y + t.h * HIT_HEAD_Y,
-          bodyY: t.y + t.h * HIT_BODY_Y,
-          halfW: t.w * HIT_HALF_W,
-        };
-      }
+      measureChar();
       if (!busy && !dragging) rest();
     }
 
@@ -442,58 +533,75 @@ function SlingshotStage({
       el.classList.add(cls);
     }
 
-    // dx/dy: onUp 에서 넘긴 P0 기준 당김 변위. trajectory 로 가이드 선과
-    // 완전히 동일한 방향·도달 지점을 산출한다.
+    // 발사 결과(명중/근접/빗나감)를 보여주고 원위치로 되돌린다.
+    function resolveShot(ix: number, iy: number, isHit: boolean, isNearMiss: boolean, power: number) {
+      if (isHit) {
+        impactBurst(ix, iy);
+        playReaction(styles.flinch);
+        const dmg = Math.round(BASE_DMG + power * POWER_DMG);
+        useCharacterStore.getState().hitWithSlingshot(characterId, dmg);
+        floatText(ix, iy - 14, "-" + dmg);
+        onHit();
+      } else if (isNearMiss) {
+        playReaction(styles.dodge);
+        floatText(ix, iy - 30, "아깝다!");
+      }
+      grab!.style.opacity = "0";
+      window.setTimeout(
+        () => {
+          grab!.style.opacity = "1";
+          rest();
+          busy = false;
+        },
+        isHit ? 600 : 300,
+      );
+    }
+
+    // dx/dy: onUp 에서 넘긴 P0 기준 당김 변위. 방향(dirx,diry)·세기(power)는
+    // 발사하는 순간 고정하되, 명중 여부는 돌이 날아가는 매 프레임 "지금"
+    // 캐릭터 위치(hitTestAt, geom.char 는 계속 갱신됨)와 다시 검사한다 —
+    // 캐릭터가 멈추지 않고 계속 움직이므로, 화면에 보이는 것과 판정이 늘 같게.
     function launch(dx: number, dy: number) {
-      const { dirx, diry, power, isHit, isNearMiss, stopDist } =
-        trajectory(dx, dy);
+      const { dirx, diry, power } = trajectory(dx, dy);
       busy = true;
       const speed = 340 + power * 520; // px/s
 
       let t0 = 0;
+      let bestDist = Infinity; // 끝까지 명중 못 했을 때 "가장 가까웠던 지점"(아깝다용)
+      let bestX = 0;
+      let bestY = 0;
+
       const step = (ts: number) => {
         if (!t0) t0 = ts;
         const travelled = (speed * (ts - t0)) / 1000;
-
-        // stopDist = 사거리/명중 지점. 여기 도달하면 돌이 멈춘다.
-        if (travelled >= stopDist) {
-          const ix = geom.P0.x + dirx * stopDist;
-          const iy = geom.P0.y + diry * stopDist;
-          moveStone(ix, iy);
-          if (isHit) {
-            impactBurst(ix, iy);
-            playReaction(styles.flinch);
-            const dmg = Math.round(BASE_DMG + power * POWER_DMG);
-            useCharacterStore.getState().hitWithSlingshot(characterId, dmg);
-            floatText(ix, iy - 14, "-" + dmg);
-          } else if (isNearMiss) {
-            playReaction(styles.dodge);
-            floatText(ix, iy - 30, "아깝다!");
-          }
-          grab!.style.opacity = "0";
-          window.setTimeout(
-            () => {
-              grab!.style.opacity = "1";
-              rest();
-              busy = false;
-            },
-            isHit ? 600 : 300,
-          );
-          return;
-        }
 
         const px = geom.P0.x + dirx * travelled;
         const py = geom.P0.y + diry * travelled;
         moveStone(px, py);
 
+        const dist = hitTestAt(px, py, power);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestX = px;
+          bestY = py;
+        }
+        if (dist <= geom.char.halfW) {
+          resolveShot(px, py, true, false, power);
+          return;
+        }
+
+        // 캐릭터 근처까지 왔다가(NEAR_MISS_ZONE 이내) 다시 멀어지기 시작하면,
+        // 화면 밖까지 굳이 더 기다리지 않고 그 자리에서 바로 결과를 보여준다
+        // — "아깝다!" 반응이 느리다는 피드백 반영. 애초에 근처에도 못 왔던
+        // (완전히 빗나간) 샷은 그대로 화면 밖으로 날아가는 연출을 유지한다.
+        const wasNear = bestDist <= geom.char.halfW * NEAR_MISS_ZONE_MULT;
+        const pastPeak = dist > bestDist + PAST_PEAK_MARGIN;
         const o = svg!.getBoundingClientRect();
-        if (px < -40 || px > o.width + 40 || py < -40 || py > o.height + 40) {
-          grab!.style.opacity = "0";
-          window.setTimeout(() => {
-            grab!.style.opacity = "1";
-            rest();
-            busy = false;
-          }, 300);
+        const offscreen =
+          px < -40 || px > o.width + 40 || py < -40 || py > o.height + 40;
+        if ((wasNear && pastPeak) || offscreen) {
+          const isNearMiss = bestDist <= geom.char.halfW * 1.7;
+          resolveShot(bestX, bestY, false, isNearMiss, power);
           return;
         }
         raf = requestAnimationFrame(step);
@@ -535,13 +643,14 @@ function SlingshotStage({
         const cx = geom.P0.x + dx;
         const cy = geom.P0.y + dy;
         setPouch(cx, cy);
-        // 가이드 선: 실제 발사와 동일하게 P0 에서 같은 방향으로,
-        // 돌이 멈추는(피사체에 맞는) 지점까지만 그린다.
-        const { dirx, diry, stopDist } = trajectory(dx, dy);
+        // 가이드 선: 실제 발사와 동일하게 P0 에서 같은 방향으로, 지금 겨냥 중인
+        // 피사체 위치까지의 대략적인 길이만큼만 그린다(미리보기일 뿐 — 실제
+        // 명중은 발사 후 매 프레임 실시간으로 다시 판정한다).
+        const { dirx, diry, previewDist } = trajectory(dx, dy);
         attr(aim!, "x1", geom.P0.x);
         attr(aim!, "y1", geom.P0.y);
-        attr(aim!, "x2", geom.P0.x + dirx * stopDist);
-        attr(aim!, "y2", geom.P0.y + diry * stopDist);
+        attr(aim!, "x2", geom.P0.x + dirx * previewDist);
+        attr(aim!, "y2", geom.P0.y + diry * previewDist);
       };
       const onUp = () => {
         dragging = false;
@@ -570,9 +679,19 @@ function SlingshotStage({
     ro.observe(svg);
     frame.addEventListener("load", measure);
 
+    // 캐릭터가 계속 움직이는 동안(useCharacterWander) 조준선/명중판정이
+    // 실시간으로 따라가도록 geom.char 만 따로 매 프레임 갱신
+    let charRaf = 0;
+    const trackChar = () => {
+      measureChar();
+      charRaf = requestAnimationFrame(trackChar);
+    };
+    charRaf = requestAnimationFrame(trackChar);
+
     return () => {
       cancelAnimationFrame(raf);
       cancelAnimationFrame(raf0);
+      cancelAnimationFrame(charRaf);
       ro.disconnect();
       frame.removeEventListener("load", measure);
       grab.removeEventListener("pointerdown", onDown);

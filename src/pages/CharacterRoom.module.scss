@@ -6,6 +6,11 @@
   position: relative;
   margin: auto;
   width: 100%;
+  // overflow-x/overflow-y 로는 한쪽만 clip할 수 없다 — 스펙상 둘 중 하나라도
+  // visible 이 아니면 나머지 하나도 자동으로 auto 로 바뀌어(auto도 넘치는
+  // 내용을 그대로 잘라냄) 위아래까지 같이 잘려버린다. clip-path 는 이런 연동이
+  // 없어서 좌우만 정확히 자를 수 있다 (위/아래는 -9999px 로 사실상 무제한).
+  clip-path: inset(-9999px 0 -9999px 0);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -17,6 +22,19 @@
     margin: auto;
     padding: 16px;
   }
+}
+
+// useCharacterWander 전용 — 새총 모드일 때 캐릭터를 계속 이리저리 움직인다.
+// transform 은 여기서만 건드리고, 피격 애니메이션(flinch/dodge)은 안쪽
+// characterWrap 에서 따로 처리해 서로 덮어쓰지 않는다.
+// roomStage 와 같은 폭의 flex-column 으로 둬서, 새총 모드에 등록된 말풍선을
+// 이 안에 같이 넣었을 때도(캐릭터와 함께 움직이도록) 폭 %가 정상적으로
+// 계산되고 가운데 정렬도 유지된다.
+.characterWander {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .characterWrap {
@@ -114,19 +132,19 @@
 
 .speechBubbleBox {
   position: relative;
-  margin: 30px 0 44px;
-  padding: 24px;
-  min-width: 50%;
-  max-width: 80%;
+  margin: 20px 0 34px;
+  padding: 16px;
+  min-width: 35%;
+  max-width: 65%;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  row-gap: 12px;
+  row-gap: 8px;
 
   background-color: #f0f0f0;
-  border-radius: 24px;
+  border-radius: 20px;
 
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.5;
   text-align: center;
   color: #333;
@@ -137,11 +155,11 @@
   &::after {
     content: "";
     position: absolute;
-    bottom: -14px;
+    bottom: -8px;
     right: 45%;
     width: 0;
     height: 0;
-    border: 15px solid transparent;
+    border: 9px solid transparent;
     border-bottom: 0;
     border-top-color: #f0f0f0;
   }
@@ -171,7 +189,7 @@
   display: block;
   width: 96px;
   aspect-ratio: 180 / 249; // 로드 전에도 높이 확보 → 기준점 계산 안정
-  margin: 8px auto 0;
+  margin: 70px auto 0;
   pointer-events: none;
   user-select: none;
 }
