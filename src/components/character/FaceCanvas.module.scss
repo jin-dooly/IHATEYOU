@@ -1,0 +1,63 @@
+.faceanvasPanel {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex-grow: 1;
+
+  button {
+    margin-top: auto;
+  }
+}
+
+.faceCanvasHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.faceCanvasTitle {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.historyControls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.undoButton,
+.toolButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-top: 0; // .faceanvasPanel button { margin-top: auto } 무력화
+  padding: 0;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+
+  &:disabled {
+    color: #d9d9d9;
+    cursor: default;
+  }
+}
+
+// 선택된 도구(펜/지우개)
+.toolButton.active {
+  border-color: #1c1c1c;
+  background: #f4f4f4;
+}
+
+.controlDivider {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 2px;
+  background: #e0e0e0;
+}

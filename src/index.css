@@ -1,18 +1,18 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
+  --text: #6b6b6b;
+  --text-h: #111111;
   --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
+  --border: #e5e5e5;
+  --code-bg: #f4f4f4;
+  --accent: #444444;
+  --accent-bg: rgba(0, 0, 0, 0.06);
+  --accent-border: rgba(0, 0, 0, 0.35);
+  --social-bg: rgba(244, 244, 244, 0.5);
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --sans: system-ui, "Segoe UI", Roboto, sans-serif;
+  --heading: system-ui, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
   font: 18px/145% var(--sans);
@@ -32,38 +32,41 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
+    --text: #a3a3a3;
+    --text-h: #f4f4f4;
+    --bg: #18181a;
+    --border: #2e2e2e;
+    --code-bg: #1f1f1f;
+    --accent: #b3b3b3;
+    --accent-bg: rgba(255, 255, 255, 0.1);
+    --accent-border: rgba(255, 255, 255, 0.4);
+    --social-bg: rgba(47, 47, 47, 0.5);
     --shadow:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
   }
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
+  width: 100%;
+  max-width: 500px;
   margin: 0 auto;
   text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  background-color: var(--bg);
 }
 
 body {
+  /* width: 100%; */
   margin: 0;
+  background-color: #6b6b6b23;
+  /* clip-path 는 그려지는 픽셀만 잘라줄 뿐 스크롤 가능 영역 계산까지는
+     막지 못한다 — CharacterRoom 의 흔들리는 캐릭터/말풍선이 화면 밖으로
+     (안 보이게) 넘어가도 body 는 그만큼 가로로 스크롤 가능하다고 계산해서
+     스크롤바가 생긴다. 세로 스크롤은 그대로 두고 가로만 막는다. */
+  overflow-x: hidden;
 }
 
 h1,
@@ -95,17 +98,53 @@ p {
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
+.page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.primary-button {
+  font: inherit;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.primary-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.face-canvas-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.face-canvas-title {
+  font-size: 20px;
   color: var(--text-h);
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+.face-canvas {
+  touch-action: none;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  cursor: crosshair;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.face-canvas-next {
+  margin-top: auto;
+  width: 100%;
+  max-width: 280px;
 }

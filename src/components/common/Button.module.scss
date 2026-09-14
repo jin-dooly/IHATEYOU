@@ -1,0 +1,18 @@
+.button {
+  min-width: 160px;
+  padding: 2px 8px;
+  background-color: #000;
+  border: none;
+  border-radius: 8px;
+  line-height: 42px;
+
+  color: #fff;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:disabled {
+    background-color: #d9d9d9;
+    cursor: default;
+  }
+}

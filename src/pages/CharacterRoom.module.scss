@@ -1,0 +1,363 @@
+.characterRoomPage {
+  position: relative;
+}
+
+.roomStage {
+  position: relative;
+  margin: auto;
+  width: 100%;
+  // overflow-x/overflow-y 로는 한쪽만 clip할 수 없다 — 스펙상 둘 중 하나라도
+  // visible 이 아니면 나머지 하나도 자동으로 auto 로 바뀌어(auto도 넘치는
+  // 내용을 그대로 잘라냄) 위아래까지 같이 잘려버린다. clip-path 는 이런 연동이
+  // 없어서 좌우만 정확히 자를 수 있다 (위/아래는 -9999px 로 사실상 무제한).
+  clip-path: inset(-9999px 0 -9999px 0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  button {
+    background: none;
+    border: none;
+    width: fit-content;
+    margin: auto;
+    padding: 16px;
+  }
+}
+
+// useCharacterWander 전용 — 새총 모드일 때 캐릭터를 계속 이리저리 움직인다.
+// transform 은 여기서만 건드리고, 피격 애니메이션(flinch/dodge)은 안쪽
+// characterWrap 에서 따로 처리해 서로 덮어쓰지 않는다.
+// roomStage 와 같은 폭의 flex-column 으로 둬서, 새총 모드에 등록된 말풍선을
+// 이 안에 같이 넣었을 때도(캐릭터와 함께 움직이도록) 폭 %가 정상적으로
+// 계산되고 가운데 정렬도 유지된다.
+.characterWander {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.characterWrap {
+  position: relative; // HairPullStage 오버레이(inset:0)의 기준
+  width: fit-content;
+  transform-origin: 50% 50%;
+}
+
+.flinch {
+  animation: flinch 0.35s ease-out;
+}
+
+.dodge {
+  animation: dodge 0.5s ease-out;
+}
+
+@keyframes flinch {
+  0% {
+    transform: translateX(0) scale(1, 1);
+  }
+  25% {
+    transform: translateX(-4px) scale(1.06, 0.9);
+  }
+  55% {
+    transform: translateX(3px) scale(0.95, 1.04);
+  }
+  100% {
+    transform: translateX(0) scale(1, 1);
+  }
+}
+
+@keyframes dodge {
+  0% {
+    transform: translateX(0) rotate(0deg);
+  }
+  40% {
+    transform: translateX(-26px) rotate(-8deg);
+  }
+  75% {
+    transform: translateX(-18px) rotate(-4deg);
+  }
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+}
+
+.attackTabs {
+  margin: 0;
+  padding: 12px;
+  box-sizing: border-box;
+  background-color: #f5f5f5;
+  border-radius: 50px;
+  column-gap: 6px;
+
+  button {
+    flex: 1;
+    padding: 12px;
+    font-size: 14px;
+    border-radius: 50px;
+    border: none;
+    font-weight: 500;
+    background: none;
+
+    &.activeTab {
+      background-color: #dedede;
+    }
+  }
+}
+
+.meterBar {
+  width: 100%;
+  text-align: left;
+
+  .meterTrack {
+    width: 100%;
+    height: 10px;
+    background-color: #e9e9e9;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .meterFill {
+    height: 100%;
+    background-color: red;
+    border-radius: 10px;
+    transition: width 0.25s ease-out;
+  }
+}
+
+.meterLabel {
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.dbMeter {
+  display: flex;
+  align-items: center;
+  column-gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+
+  .dbMeterTrack {
+    flex: 1;
+    height: 10px;
+    background-color: #e9e9e9;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .dbMeterFill {
+    height: 100%;
+    background-color: #7c6bd6;
+    border-radius: 10px;
+    transition: width 0.08s linear;
+  }
+
+  .dbMeterLabel {
+    min-width: 40px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: right;
+  }
+
+  .dbMeterUnit {
+    margin-left: 2px;
+    font-weight: 400;
+    color: #9e9e9e;
+  }
+}
+
+.micError {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #ff6b6b;
+}
+
+.speechBubbleBox {
+  position: relative;
+  margin: 20px 0 34px;
+  padding: 16px;
+  min-width: 35%;
+  max-width: 65%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  row-gap: 8px;
+
+  background-color: #f0f0f0;
+  border-radius: 20px;
+
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  color: #333;
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  // 말풍선 꼬리
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -8px;
+    right: 45%;
+    width: 0;
+    height: 0;
+    border: 9px solid transparent;
+    border-bottom: 0;
+    border-top-color: #f0f0f0;
+  }
+
+  textarea {
+    width: 100%;
+    padding: 6px 0;
+    background: none;
+    border: none;
+    font: inherit;
+    text-align: center;
+    color: inherit;
+    resize: none;
+    overflow: hidden;
+
+    &:focus {
+      outline: none;
+    }
+
+    &::placeholder {
+      color: #b5b5b5;
+    }
+  }
+}
+
+.slingshotFrame {
+  display: block;
+  width: 96px;
+  aspect-ratio: 180 / 249; // 로드 전에도 높이 확보 → 기준점 계산 안정
+  margin: 70px auto 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+// roomStage 전체를 덮는 인터랙션 레이어 (viewBox 없이 1px = 1unit)
+.slingshotOverlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible; // 발사된 돌 / 이펙트가 프레임 밖으로 나가도 보이게
+  pointer-events: none; // 돌(파우치)만 잡히도록
+
+  .band {
+    stroke: #4a3524;
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+
+  .aimLine {
+    stroke: #c4c4c4;
+    stroke-width: 1.5;
+    stroke-dasharray: 4 4;
+    opacity: 0;
+  }
+
+  .burst {
+    stroke: #444;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  // 드래그 핸들 그룹 (돌 + 넉넉한 투명 잡기영역)
+  .projectile {
+    pointer-events: auto;
+    cursor: grab;
+    touch-action: none;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  .grabArea {
+    fill: #000;
+    fill-opacity: 0;
+    pointer-events: all; // 안 보여도 포인터는 잡음
+  }
+
+  .stone {
+    fill: #5b5b5b;
+    stroke: #3d3d3d;
+    stroke-width: 1.5;
+    pointer-events: none;
+  }
+}
+
+// characterWrap 위에 CharacterFigure 와 완전히 겹쳐지는 오버레이.
+// viewBox 가 CharacterFigure 와 동일(0 0 160 222)해서 좌표 변환 없이
+// 가닥 path(d) 를 그대로 재사용할 수 있다.
+.hairPullOverlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none; // 가닥 히트 path(hairHitPath)만 잡히도록
+}
+
+// 가닥 하나하나의 실제 곡선을 그대로 히트 영역으로 쓴다 — 눈에 보이는
+// 머리카락 어디를 클릭해도 그 가닥이 잡히도록. fill 은 없고 stroke 만
+// (투명하지만 두껍게) 판정해서 곡선을 따라 넓게 잡힌다.
+.hairHitPath {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  pointer-events: stroke;
+  cursor: grab;
+  touch-action: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.hairPullLine {
+  stroke: #4a3524;
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0;
+}
+
+.floatText {
+  font-size: 14px;
+  font-weight: 700;
+  fill: #ff5a5a;
+  text-anchor: middle;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: floatUp 0.8s ease-out forwards;
+}
+
+@keyframes floatUp {
+  to {
+    transform: translateY(-26px);
+    opacity: 0;
+  }
+}
+
+.bubbleButtons {
+  display: flex;
+  justify-content: flex-end;
+  column-gap: 18px;
+
+  button {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    color: #9e9e9e;
+    cursor: pointer;
+  }
+
+  .delete {
+    color: #ff6b6b;
+  }
+}
