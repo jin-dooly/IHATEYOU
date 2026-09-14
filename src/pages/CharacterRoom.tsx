@@ -13,7 +13,7 @@ import { getHairStyle, parseStrandAnchor } from "../constants/hairStyles";
 import { CharacterFigure } from "../components/character/CharacterFigure";
 import styles from "./CharacterRoom.module.scss";
 import Button from "../components/common/Button";
-import slingshotSvg from "../assets/Slingshot.svg";
+import slingshot from "../assets/slingshot.jpg";
 import { useMicDecibel } from "../hooks/useMicDecibel";
 
 type Mode = "slingshot" | "hair" | "mic";
@@ -753,7 +753,7 @@ function SlingshotStage({
     <>
       <img
         ref={frameRef}
-        src={slingshotSvg}
+        src={slingshot}
         alt="새총"
         className={styles.slingshotFrame}
         draggable={false}

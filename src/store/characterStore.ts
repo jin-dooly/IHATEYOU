@@ -6,6 +6,7 @@ import type {
   HitLogEntry,
 } from "../types/character";
 import { assignSlot } from "../utils/scatterLayout";
+import { getHairStyle } from "../constants/hairStyles";
 import {
   computeHpRecovery,
   computeHearingRecovery,
@@ -83,8 +84,8 @@ export const useCharacterStore = create<CharacterStore>()(
           config,
           stats: {
             totalHits: 0,
-            streakDays: 0,
             lastHitAt: null,
+            baldCount: 0,
             currentHp: 100,
             hpLastRecoveredAt: nowIso(),
             currentHearing: 100,
@@ -206,20 +207,25 @@ export const useCharacterStore = create<CharacterStore>()(
           if (c.config.hair.removedStrands.some((r) => r.index === strandIndex))
             return s;
           const hit = logHit(c, "hair", "hair", 1);
+          const removedStrands = [
+            ...hit.config.hair.removedStrands,
+            { index: strandIndex, removedAt: nowIso() },
+          ];
+          // 이번 뽑기로 딱 대머리가 됐으면(전부 뽑힘) 업적 카운트 +1.
+          // refillHair 로 리필해도 이 누적 카운트는 줄어들지 않는다.
+          const totalStrands = getHairStyle(hit.config.hair.styleId).strands.length;
+          const wentBald = removedStrands.length >= totalStrands;
           return {
             characters: {
               ...s.characters,
               [id]: touch({
                 ...hit,
+                stats: wentBald
+                  ? { ...hit.stats, baldCount: hit.stats.baldCount + 1 }
+                  : hit.stats,
                 config: {
                   ...hit.config,
-                  hair: {
-                    ...hit.config.hair,
-                    removedStrands: [
-                      ...hit.config.hair.removedStrands,
-                      { index: strandIndex, removedAt: nowIso() },
-                    ],
-                  },
+                  hair: { ...hit.config.hair, removedStrands },
                 },
               }),
             },
@@ -369,6 +375,19 @@ export const useCharacterStore = create<CharacterStore>()(
           };
         }),
     }),
-    { name: "ihateyou-storage" },
+    {
+      name: "ihateyou-storage",
+      version: 1,
+      // v1: CharacterStats 에 baldCount 추가 — 이전에 저장된 캐릭터는 없는 값이라 0으로 채움
+      migrate: (persisted, version) => {
+        const state = persisted as { characters: Record<string, Character> };
+        if (version < 1) {
+          for (const c of Object.values(state.characters ?? {})) {
+            if (c.stats.baldCount === undefined) c.stats.baldCount = 0;
+          }
+        }
+        return state;
+      },
+    },
   ),
 );
