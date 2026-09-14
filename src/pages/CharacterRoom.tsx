@@ -14,6 +14,7 @@ import { CharacterFigure } from "../components/character/CharacterFigure";
 import styles from "./CharacterRoom.module.scss";
 import Button from "../components/common/Button";
 import slingshotSvg from "../assets/Slingshot.svg";
+import { useMicDecibel } from "../hooks/useMicDecibel";
 
 type Mode = "slingshot" | "hair" | "mic";
 
@@ -116,8 +117,15 @@ export default function CharacterRoom() {
   const charWrapRef = useRef<HTMLDivElement>(null);
   const [wanderRef, setWanderPaused] = useCharacterWander(mode === "slingshot");
   const hitFreezeTimeoutRef = useRef<number>(undefined);
+  const mic = useMicDecibel();
 
   useStatRecovery(id);
+
+  // 마이크 모드를 벗어나면 진행 중인 측정을 즉시 정리한다
+  const cancelMic = mic.cancel;
+  useEffect(() => {
+    if (mode !== "mic") cancelMic();
+  }, [mode, cancelMic]);
 
   // 새총이 딱 맞았을 때만 0.5초 캐릭터를 멈춰서 타격감을 준다
   function handleSlingshotHit() {
@@ -206,7 +214,9 @@ export default function CharacterRoom() {
       </div>
 
       <div className={styles.roomStage}>
-        {mode === "mic" && <DecibelMeter />}
+        {mode === "mic" && (
+          <DecibelMeter decibel={mic.decibel} listening={mic.listening} />
+        )}
 
         {/* 새총 모드에서는 말풍선 생성/수정/삭제 불가 — 이미 등록된 말풍선이
             있으면 아래 wanderRef 안에서 읽기 전용으로만 보여준다(캐릭터와
@@ -284,7 +294,7 @@ export default function CharacterRoom() {
           머리카락 리필
         </button>
       )}
-      {mode === "mic" && <ScreamButton characterId={id} />}
+      {mode === "mic" && <ScreamButton characterId={id} mic={mic} />}
 
       <nav className={styles.attackTabs}>
         {TABS.map((t) => (
@@ -301,39 +311,52 @@ export default function CharacterRoom() {
   );
 }
 
-function DecibelMeter() {
-  // 실제 마이크 연동은 Web Audio API AnalyserNode로 별도 구현 필요 — 지금은 자리만
+function DecibelMeter({
+  decibel,
+  listening,
+}: {
+  decibel: number;
+  listening: boolean;
+}) {
   return (
-    <div className="db-meter">
-      <span>100</span>
-      <span>80</span>
-      <span>60</span>
-      <span>40</span>
-      <span>20</span>
-      <span>0</span>
-      <span className="db-unit">(dB)</span>
+    <div className={styles.dbMeter}>
+      <div className={styles.dbMeterTrack}>
+        <div className={styles.dbMeterFill} style={{ width: `${decibel}%` }} />
+      </div>
+      <span className={styles.dbMeterLabel}>
+        {listening ? decibel : 0}
+        <span className={styles.dbMeterUnit}>dB</span>
+      </span>
     </div>
   );
 }
 
-function ScreamButton({ characterId }: { characterId: string }) {
-  const [listening, setListening] = useState(false);
+const SCREAM_LISTEN_MS = 1500;
+
+function ScreamButton({
+  characterId,
+  mic,
+}: {
+  characterId: string;
+  mic: ReturnType<typeof useMicDecibel>;
+}) {
+  const [busy, setBusy] = useState(false);
   const hitWithScream = useCharacterStore((s) => s.hitWithScream);
 
-  function handlePress() {
-    setListening(true);
-    // TODO: getUserMedia + AnalyserNode로 실제 데시벨 측정해서 넘기기
-    const mockDecibel = 60 + Math.random() * 40;
-    setTimeout(() => {
-      hitWithScream(characterId, mockDecibel);
-      setListening(false);
-    }, 800);
+  async function handlePress() {
+    setBusy(true);
+    const peak = await mic.measure(SCREAM_LISTEN_MS);
+    if (peak != null) hitWithScream(characterId, peak);
+    setBusy(false);
   }
 
   return (
-    <Button onClick={handlePress} disabled={listening}>
-      {listening ? "···∙···∙·····" : "소리지르기"}
-    </Button>
+    <>
+      <Button onClick={handlePress} disabled={busy}>
+        {mic.listening ? "···∙···∙·····" : "소리지르기"}
+      </Button>
+      {mic.error && <p className={styles.micError}>{mic.error}</p>}
+    </>
   );
 }
 
