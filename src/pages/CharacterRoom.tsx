@@ -215,7 +215,10 @@ export default function CharacterRoom() {
         <div className={styles.meterTrack}>
           <div
             className={styles.meterFill}
-            style={{ width: `${meter.value}%` }}
+            style={{
+              width: `${meter.value}%`,
+              backgroundColor: `${mode === "slingshot" ? "#95e1d3" : mode === "hair" ? "#f38181" : "#fce38a"}`,
+            }}
           />
         </div>
         <span className={styles.meterLabel}>{meter.label}</span>

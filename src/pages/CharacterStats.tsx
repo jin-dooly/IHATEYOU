@@ -25,9 +25,9 @@ const ATTACK_LABELS: Record<AttackType, string> = {
 };
 
 const ATTACK_COLORS: Record<AttackType, string> = {
-  slingshot: "#ff5a5a",
-  hair: "#b8895a",
-  mic: "#7c6bd6",
+  slingshot: "#95e1d3",
+  hair: "#f38181",
+  mic: "#fce38a",
 };
 
 const ATTACK_TYPES: AttackType[] = ["slingshot", "hair", "mic"];

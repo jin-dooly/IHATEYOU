@@ -10,7 +10,9 @@
   // visible 이 아니면 나머지 하나도 자동으로 auto 로 바뀌어(auto도 넘치는
   // 내용을 그대로 잘라냄) 위아래까지 같이 잘려버린다. clip-path 는 이런 연동이
   // 없어서 좌우만 정확히 자를 수 있다 (위/아래는 -9999px 로 사실상 무제한).
-  clip-path: inset(-9999px 0 -9999px 0);
+  // 좌우는 .page 의 padding(16px) 만큼 바깥으로 더 늘려서, 캐릭터가 흔들리며
+  // padding 영역에 들어가도 그 안에서 잘리지 않고 화면 가장자리에서만 잘리게 한다.
+  clip-path: inset(-9999px -16px -9999px -16px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -35,6 +37,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  z-index: 2;
 }
 
 .characterWrap {
@@ -118,7 +121,6 @@
 
   .meterFill {
     height: 100%;
-    background-color: red;
     border-radius: 10px;
     transition: width 0.25s ease-out;
   }
