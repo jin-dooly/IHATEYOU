@@ -100,6 +100,19 @@ p {
   margin: 0;
 }
 
+/* 모바일 브라우저(특히 iOS Safari)는 appearance 를 안 지워주면 <button> 을
+   시스템 기본 파란 틴트(강조색)로 렌더링한다 — 이 앱 버튼들은 대부분 배경을
+   없애고 아이콘/글자 색을 stroke="currentColor" 등으로 상속받게 만들어져
+   있는데, 그 상속 기준이 되는 button 자체의 color 가 명시돼 있지 않아서
+   시스템 파란색이 그대로 아이콘/글자색에 묻어났다. 전역으로 appearance 를
+   지우고 color 를 상속받게 고정한다. */
+button {
+  appearance: none;
+  -webkit-appearance: none;
+  color: inherit;
+  font: inherit;
+}
+
 .page {
   display: flex;
   flex-direction: column;
