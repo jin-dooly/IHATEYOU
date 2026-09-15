@@ -257,7 +257,7 @@ export default function CharacterRoom() {
             </div>
           ) : (
             <button
-              className="bubble-icon"
+              className={styles.bubbleIcon}
               onClick={() => setBubbleOpen((v) => !v)}
               aria-label="말풍선"
             >
@@ -899,7 +899,7 @@ const HAIR_PULL_THRESHOLD = 22; // 이만큼 당겨야 뽑힘 확정 (모자라�
 // 대부분 반경 밖이라 아무것도 안 잡혔다.
 //
 // 그래서 이번엔 좌표를 화면 px 로 직접 변환하지 않고, 오버레이 svg 자체에
-// CharacterFigure 와 똑같은 viewBox(0 0 160 222)를 줘서 두 svg 를 완전히
+// CharacterFigure 와 똑같은 viewBox(0.5 -4.5 158 226)를 줘서 두 svg 를 완전히
 // 겹쳐지게 만들었다. 그러면 가닥의 원본 path(d) 를 좌표 변환 없이 그대로
 // 재사용해서 "보이는 곡선 그 자체"를 히트 영역으로 쓸 수 있다
 // (fill 없이 굵은 투명 stroke + pointer-events: stroke).
@@ -1006,7 +1006,7 @@ function HairPullStage({
     <svg
       ref={svgRef}
       className={styles.hairPullOverlay}
-      viewBox="0 0 160 222"
+      viewBox="0.5 -4.5 158 226"
       xmlns="http://www.w3.org/2000/svg"
     >
       <line

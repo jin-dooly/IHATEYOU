@@ -17,12 +17,16 @@
   flex-direction: column;
   align-items: center;
 
-  button {
+  .bubbleIcon {
     background: none;
     border: none;
     width: fit-content;
     margin: auto;
-    padding: 16px;
+    padding: 6px;
+    cursor: pointer;
+    svg {
+      stroke: #333333;
+    }
   }
 }
 
@@ -37,7 +41,6 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  z-index: 2;
 }
 
 .characterWrap {
@@ -146,7 +149,7 @@
     overflow: visible;
 
     path {
-      stroke: #7c6bd6;
+      stroke: #a3a3a3;
     }
   }
 
@@ -288,7 +291,7 @@
 }
 
 // characterWrap 위에 CharacterFigure 와 완전히 겹쳐지는 오버레이.
-// viewBox 가 CharacterFigure 와 동일(0 0 160 222)해서 좌표 변환 없이
+// viewBox 가 CharacterFigure 와 동일(0.5 -4.5 158 226)해서 좌표 변환 없이
 // 가닥 path(d) 를 그대로 재사용할 수 있다.
 .hairPullOverlay {
   position: absolute;

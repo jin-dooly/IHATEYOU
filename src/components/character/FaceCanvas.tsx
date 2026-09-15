@@ -167,7 +167,7 @@ export function FaceCanvas({ onNext, initialImage }: FaceCanvasProps) {
   }
 
   return (
-    <div className={styles.faceanvasPanel}>
+    <div className={styles.faceCanvasPanel}>
       <div className={styles.faceCanvasHeader}>
         <p className={styles.faceCanvasTitle}>얼굴을 그려주세요</p>
       </div>
