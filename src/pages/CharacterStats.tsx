@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { useCharacterStore } from "../store/characterStore";
+import { BackButton } from "../components/common/BackButton";
 import { CharacterFigure } from "../components/character/CharacterFigure";
 import { MetricCard } from "../components/stats/MetricCard";
 import { HitHistoryChart } from "../components/stats/HitHistoryChart";
@@ -68,12 +69,7 @@ export default function CharacterStats() {
   return (
     <div className={"page " + styles.statsPage}>
       <header className="header">
-        <button
-          onClick={() => navigate(`/characters/${id}/room`)}
-          aria-label="뒤로"
-        >
-          ◀
-        </button>
+        <BackButton onClick={() => navigate(`/characters/${id}/room`)} />
         <h1>통계</h1>
       </header>
 

@@ -13,6 +13,7 @@ import { getHairStyle, parseStrandAnchor } from "../constants/hairStyles";
 import { CharacterFigure } from "../components/character/CharacterFigure";
 import styles from "./CharacterRoom.module.scss";
 import Button from "../components/common/Button";
+import { BackButton } from "../components/common/BackButton";
 import slingshot from "../assets/slingshot.jpg";
 import { useMicDecibel } from "../hooks/useMicDecibel";
 
@@ -127,6 +128,13 @@ export default function CharacterRoom() {
     if (mode !== "mic") cancelMic();
   }, [mode, cancelMic]);
 
+  // 다른 공격 모드 탭으로 넘어가면 열려 있던 말풍선 입력창은 자동으로 닫는다
+  // (페이지 자체를 벗어나는 경우는 컴포넌트가 언마운트되며 자연히 초기화됨)
+  function handleModeChange(next: Mode) {
+    setMode(next);
+    setBubbleOpen(false);
+  }
+
   // 새총이 딱 맞았을 때만 0.5초 캐릭터를 멈춰서 타격감을 준다
   function handleSlingshotHit() {
     setWanderPaused(true);
@@ -158,7 +166,7 @@ export default function CharacterRoom() {
   return (
     <div className={"page " + styles.characterRoomPage}>
       <header className="header">
-        <button onClick={() => navigate("/characters")}>◀</button>
+        <BackButton onClick={() => navigate("/characters")} />
         <h1>{character.name}</h1>
         <div className="right-button">
           <button
@@ -214,10 +222,6 @@ export default function CharacterRoom() {
       </div>
 
       <div className={styles.roomStage}>
-        {mode === "mic" && (
-          <DecibelMeter decibel={mic.decibel} listening={mic.listening} />
-        )}
-
         {/* 새총 모드에서는 말풍선 생성/수정/삭제 불가 — 이미 등록된 말풍선이
             있으면 아래 wanderRef 안에서 읽기 전용으로만 보여준다(캐릭터와
             같이 움직이도록) */}
@@ -229,6 +233,7 @@ export default function CharacterRoom() {
                 useCharacterStore.getState().addSpeechBubble(id, text);
                 setBubbleOpen(false);
               }}
+              onClose={() => setBubbleOpen(false)}
               onDelete={
                 latestBubble
                   ? () => {
@@ -253,7 +258,22 @@ export default function CharacterRoom() {
               onClick={() => setBubbleOpen((v) => !v)}
               aria-label="말풍선"
             >
-              💬
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M8 3 L16 3 A5 5 0 0 1 21 8 L21 12 A5 5 0 0 1 16 17 L12 17 L7 21 L8 17 A5 5 0 0 1 3 12 L3 8 A5 5 0 0 1 8 3 Z" />
+                <path d="M12 10h.01" />
+                <path d="M16 10h.01" />
+                <path d="M8 10h.01" />
+              </svg>
             </button>
           ))}
 
@@ -273,6 +293,9 @@ export default function CharacterRoom() {
                 targetRef={charWrapRef}
                 onGrabChange={setHeldStrandIndex}
               />
+            )}
+            {mode === "mic" && (
+              <MicWaveform decibel={mic.decibel} listening={mic.listening} />
             )}
           </div>
         </div>
@@ -301,7 +324,7 @@ export default function CharacterRoom() {
           <button
             key={t.key}
             className={mode === t.key ? styles.activeTab : ""}
-            onClick={() => setMode(t.key)}
+            onClick={() => handleModeChange(t.key)}
           >
             {t.label}
           </button>
@@ -311,18 +334,89 @@ export default function CharacterRoom() {
   );
 }
 
-function DecibelMeter({
+// Siri 음성인식 느낌의 웨이브 — 겹쳐진 sine 곡선 3겹을 매 프레임 그려서
+// 흐르는 듯한 모양을 만들고, 실제 진폭(높이)은 마이크 데시벨 점수에 맞춰
+// 부드럽게(lerp) 따라가게 한다. 급격히 값이 튀어도 곡선이 뚝뚝 끊기지
+// 않도록 목표 진폭(targetAmpRef)과 현재 진폭(ampRef)을 분리했다.
+const WAVE_WIDTH = 320;
+const WAVE_HEIGHT = 80;
+const WAVE_MID = WAVE_HEIGHT / 2;
+const WAVE_STEP = 8; // px, 곡선을 그릴 때의 x 샘플 간격
+const WAVE_IDLE_AMP = 2; // px, 마이크가 꺼져 있을 때도 살짝 살아있는 느낌
+const WAVE_MAX_AMP = 100; // px, decibel 100일 때 진폭
+const WAVE_LAYERS = [
+  { freq: 0.045, speed: 2.2, ampMul: 1, opacity: 0.9 },
+  { freq: 0.035, speed: -1.6, ampMul: 0.7, opacity: 0.5 },
+  { freq: 0.02, speed: 1.1, ampMul: 0.45, opacity: 0.3 },
+];
+
+function MicWaveform({
   decibel,
   listening,
 }: {
   decibel: number;
   listening: boolean;
 }) {
+  const pathRefs = useRef<(SVGPathElement | null)[]>([]);
+  const ampRef = useRef(WAVE_IDLE_AMP);
+  const targetAmpRef = useRef(WAVE_IDLE_AMP);
+
+  useEffect(() => {
+    targetAmpRef.current = listening
+      ? WAVE_IDLE_AMP + (decibel / 100) * (WAVE_MAX_AMP - WAVE_IDLE_AMP)
+      : WAVE_IDLE_AMP;
+  }, [decibel, listening]);
+
+  useEffect(() => {
+    let raf = 0;
+    let t = 0;
+    let last = performance.now();
+    const step = (now: number) => {
+      const dt = (now - last) / 1000;
+      last = now;
+      t += dt;
+      ampRef.current +=
+        (targetAmpRef.current - ampRef.current) * Math.min(1, dt * 6);
+
+      for (let i = 0; i < WAVE_LAYERS.length; i++) {
+        const path = pathRefs.current[i];
+        if (!path) continue;
+        const layer = WAVE_LAYERS[i];
+        const amp = ampRef.current * layer.ampMul;
+        let d = "";
+        for (let x = 0; x <= WAVE_WIDTH; x += WAVE_STEP) {
+          const y = WAVE_MID + Math.sin(x * layer.freq + t * layer.speed) * amp;
+          d += (x === 0 ? "M" : "L") + x + " " + y.toFixed(1) + " ";
+        }
+        path.setAttribute("d", d);
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   return (
-    <div className={styles.dbMeter}>
-      <div className={styles.dbMeterTrack}>
-        <div className={styles.dbMeterFill} style={{ width: `${decibel}%` }} />
-      </div>
+    <div className={styles.micWaveform}>
+      <svg
+        className={styles.micWaveformSvg}
+        viewBox={`0 0 ${WAVE_WIDTH} ${WAVE_HEIGHT}`}
+        preserveAspectRatio="none"
+      >
+        {WAVE_LAYERS.map((layer, i) => (
+          <path
+            key={i}
+            ref={(el) => {
+              pathRefs.current[i] = el;
+            }}
+            fill="none"
+            strokeOpacity={layer.opacity}
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        ))}
+      </svg>
       <span className={styles.dbMeterLabel}>
         {listening ? decibel : 0}
         <span className={styles.dbMeterUnit}>dB</span>
@@ -584,7 +678,13 @@ function SlingshotStage({
     }
 
     // 발사 결과(명중/근접/빗나감)를 보여주고 원위치로 되돌린다.
-    function resolveShot(ix: number, iy: number, isHit: boolean, isNearMiss: boolean, power: number) {
+    function resolveShot(
+      ix: number,
+      iy: number,
+      isHit: boolean,
+      isNearMiss: boolean,
+      power: number,
+    ) {
       if (isHit) {
         impactBurst(ix, iy);
         playReaction(styles.flinch);
@@ -886,7 +986,7 @@ function HairPullStage({
       if (Math.hypot(dx, dy) >= HAIR_PULL_THRESHOLD) {
         useCharacterStore.getState().pluckStrand(characterId, index);
         playShake();
-        floatText(anchor.x, anchor.y - 6, "쏙!");
+        floatText(anchor.x, anchor.y - 6, "아야!");
       }
       // 못 미치면 아무 상태 변화 없이 그냥 선만 사라짐(스냅백)
     };
@@ -906,7 +1006,13 @@ function HairPullStage({
       viewBox="0 0 160 222"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <line ref={lineRef} className={styles.hairPullLine} />
+      <line
+        ref={lineRef}
+        className={styles.hairPullLine}
+        fill={hair.color}
+        style={{ color: hair.color }}
+        stroke={hair.color}
+      />
       <g ref={fxRef} />
       {style.strands.map((strand, index) => {
         if (removed.has(index)) return null;
@@ -929,10 +1035,12 @@ function SpeechBubbleInput({
   existing,
   onSubmit,
   onDelete,
+  onClose,
 }: {
   existing?: string;
   onSubmit: (text: string) => void;
   onDelete?: () => void;
+  onClose: () => void;
 }) {
   const [text, setText] = useState(existing ?? "");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -961,7 +1069,10 @@ function SpeechBubbleInput({
             삭제
           </button>
         )}
-        <button onClick={() => onSubmit(text.trim())}>등록</button>
+        <button onClick={onClose}>닫기</button>
+        <button disabled={!text.trim()} onClick={() => onSubmit(text.trim())}>
+          등록
+        </button>
       </div>
     </div>
   );

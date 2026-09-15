@@ -8,6 +8,7 @@ import { CharacterConfigPicker } from "../components/character/CharacterConfigPi
 import { CharacterFigure } from "../components/character/CharacterFigure";
 import styles from "./CharacterCreate.module.scss";
 import Button from "../components/common/Button";
+import { BackButton } from "../components/common/BackButton";
 
 type Step = "face" | "customize";
 
@@ -47,8 +48,8 @@ export default function CharacterCreate() {
 
   return (
     <div className={"page " + styles.page}>
-      <div className="header">
-        {<button onClick={handleBack}>◀</button>}
+      <div className={"header " + styles.header}>
+        <BackButton onClick={handleBack} />
         <h1>캐릭터 생성 ({step === "customize" ? "1/2" : "2/2"})</h1>
       </div>
 
