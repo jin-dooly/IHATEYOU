@@ -83,7 +83,6 @@ export const useCharacterStore = create<CharacterStore>()(
           config,
           stats: {
             totalHits: 0,
-            streakDays: 0,
             lastHitAt: null,
             currentHp: 100,
             hpLastRecoveredAt: nowIso(),

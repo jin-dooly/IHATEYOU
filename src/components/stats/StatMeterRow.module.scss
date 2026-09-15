@@ -1,0 +1,53 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #ffffff;
+  border: 1px solid #ececec;
+  border-radius: 20px;
+  padding: 8px 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.iconBadge {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.label {
+  flex-shrink: 0;
+  width: 62px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333333;
+}
+
+.track {
+  flex: 1;
+  height: 9px;
+  background: #ececec;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease-out;
+  opacity: 0.8;
+}
+
+.pct {
+  flex-shrink: 0;
+  min-width: 40px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
+  color: #333333;
+}

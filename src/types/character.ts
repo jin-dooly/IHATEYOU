@@ -34,7 +34,6 @@ export interface HitLogEntry {
 
 export interface CharacterStats {
   totalHits: number;
-  streakDays: number;
   lastHitAt: string | null;
 
   currentHp: number;

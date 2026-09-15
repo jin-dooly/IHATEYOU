@@ -7,6 +7,7 @@ import { FaceCanvas } from "../components/character/FaceCanvas";
 import { CharacterConfigPicker } from "../components/character/CharacterConfigPicker";
 import { CharacterFigure } from "../components/character/CharacterFigure";
 import Button from "../components/common/Button";
+import { BackButton } from "../components/common/BackButton";
 import styles from "./CharacterEdit.module.scss";
 
 type Step = "customize" | "face";
@@ -63,8 +64,8 @@ export default function CharacterEdit() {
 
   return (
     <div className={"page " + styles.page}>
-      <div className="header">
-        <button onClick={handleBack}>◀</button>
+      <div className={"header " + styles.header}>
+        <BackButton onClick={handleBack} />
         <h1>캐릭터 수정 ({step === "customize" ? "1/2" : "2/2"})</h1>
         {step === "customize" && (
           <button

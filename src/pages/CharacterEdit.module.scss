@@ -1,6 +1,11 @@
 .page {
   position: relative;
   overflow: hidden;
+  padding: 0;
+}
+
+.header {
+  padding: 16px;
 }
 
 .customizePanel {
@@ -51,7 +56,7 @@
 }
 
 .nextButton {
-  margin-top: auto;
+  margin: 16px;
 }
 
 // 헤더 오른쪽 끝 아이콘 버튼 (.header button 전역 스타일 위에 색상만 얹는다)
