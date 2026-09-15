@@ -35,7 +35,6 @@ export interface HitLogEntry {
 export interface CharacterStats {
   totalHits: number;
   lastHitAt: string | null;
-  baldCount: number;
 
   currentHp: number;
   hpLastRecoveredAt: string;

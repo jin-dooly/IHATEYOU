@@ -14,12 +14,18 @@ export function StatMeterRow({
 }) {
   return (
     <div className={styles.row}>
-      <div className={styles.iconBadge} style={{ color, backgroundColor: `${color}1a` }}>
+      <div
+        className={styles.iconBadge}
+        style={{ color, backgroundColor: `${color}1a` }}
+      >
         {icon}
       </div>
       <span className={styles.label}>{label}</span>
       <div className={styles.track}>
-        <div className={styles.fill} style={{ width: `${value}%`, background: color }} />
+        <div
+          className={styles.fill}
+          style={{ width: `${value}%`, background: color }}
+        />
       </div>
       <span className={styles.pct}>{value}%</span>
     </div>

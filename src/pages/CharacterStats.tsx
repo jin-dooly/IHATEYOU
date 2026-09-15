@@ -93,9 +93,7 @@ export default function CharacterStats() {
             <span>{character.stats.totalHits}</span>
             <span>회</span>
           </div>
-          {character.stats.totalHits === 0 ? (
-            <p className={styles.empty}>아직 기록이 없어요</p>
-          ) : (
+          {character.stats.totalHits !== 0 && (
             <>
               <div className={styles.breakdownBar}>
                 {stats.typeEntries.map((e) => (
@@ -131,42 +129,10 @@ export default function CharacterStats() {
             value={
               character.stats.lastHitAt
                 ? formatRelativeTime(character.stats.lastHitAt)
-                : "아직 없음"
+                : "-"
             }
           />
         </div>
-        {/* 
-      <div className={styles.baldCard}>
-        <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
-          <circle
-            cx="15"
-            cy="15"
-            r="12"
-            fill="none"
-            stroke="#b8895a"
-            strokeWidth="2"
-          />
-          <path
-            d="M18 8 L21 6"
-            stroke="#b8895a"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <path
-            d="M20 11 L23 9.5"
-            stroke="#b8895a"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-        <div className={styles.baldText}>
-          <span className={styles.metricLabel}>대머리 만든 횟수</span>
-          <span className={styles.baldValue}>
-            {character.stats.baldCount}회
-          </span>
-        </div>
-      </div> */}
-
         <section className={styles.section}>
           <h2>현재 상태</h2>
           <div className={styles.statList}>
