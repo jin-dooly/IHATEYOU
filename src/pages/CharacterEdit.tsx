@@ -123,7 +123,13 @@ export default function CharacterEdit() {
             }
             hairStyleId={config.hair.styleId}
             onHairStyleChange={(styleId) =>
-              setConfig((p) => ({ ...p, hair: { ...p.hair, styleId } }))
+              // 스타일이 바뀌면 가닥 배열 자체가 달라지므로, 이전 스타일 기준
+              // 인덱스로 기록된 removedStrands 는 더 이상 의미가 없다(다른
+              // 가닥을 가리키게 됨) — 새 스타일에서는 다시 안 뽑힌 상태로.
+              setConfig((p) => ({
+                ...p,
+                hair: { ...p.hair, styleId, removedStrands: [] },
+              }))
             }
           />
 
