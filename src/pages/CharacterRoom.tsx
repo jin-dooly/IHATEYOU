@@ -312,7 +312,7 @@ export default function CharacterRoom() {
         )}
       </div>
 
-      {mode === "hair" && hairPct < 15 && (
+      {mode === "hair" && hairPct === 0 && (
         <button
           className="primary-button refill-button"
           onClick={() => refillHair(id)}
