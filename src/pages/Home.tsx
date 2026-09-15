@@ -49,6 +49,7 @@ export default function Home() {
           className={"right-button"}
           onClick={handleGoToCreate}
           disabled={MAX_CHARACTERS <= characters.length}
+          aria-label="캐릭터 추가"
         >
           +
         </button>
@@ -70,6 +71,7 @@ export default function Home() {
                 key={c.id}
                 onClick={() => setSelectedId(c.id)}
                 className={styles.scatterItem}
+                aria-label={`${c.name} 선택`}
                 style={{
                   left: `${pos.x - ITEM_SIZE / 2}px`,
                   top: `${pos.y - ITEM_SIZE / 2}px`,
