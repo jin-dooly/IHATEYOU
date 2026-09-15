@@ -82,7 +82,10 @@ export default function CharacterCreate() {
             }
             hairStyleId={config.hair.styleId}
             onHairStyleChange={(styleId) =>
-              setConfig((p) => ({ ...p, hair: { ...p.hair, styleId } }))
+              setConfig((p) => ({
+                ...p,
+                hair: { ...p.hair, styleId, removedStrands: [] },
+              }))
             }
           />
           <Button
