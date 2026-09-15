@@ -26,8 +26,8 @@ export function CharacterFigure({
     <svg
       {...res}
       width={size}
-      height={size * 1.35}
-      viewBox="0 0 160 222"
+      height={size * (226 / 158)}
+      viewBox="0.5 -4.5 158 226"
       fill="none"
       style={{ opacity: faded ? 0.35 : 1 }}
       xmlns="http://www.w3.org/2000/svg"

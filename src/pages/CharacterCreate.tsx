@@ -16,7 +16,7 @@ const DEFAULT_CONFIG: CharacterConfig = {
   headShape: "round",
   bodyColor: "#ffffff",
   faceImage: "",
-  hair: { styleId: "slickback", color: "#000", removedStrands: [] },
+  hair: { styleId: "layered", color: "#000", removedStrands: [] },
 };
 
 export default function CharacterCreate() {

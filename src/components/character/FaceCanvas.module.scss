@@ -1,5 +1,5 @@
-.faceanvasPanel {
-  margin-top: 16px;
+.faceCanvasPanel {
+  margin: 16px;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -21,6 +21,35 @@
   font-weight: 600;
 }
 
+.canvasWrap {
+  position: relative;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+// 아직 아무것도 안 그렸을 때만 보이는 눈/입 가이드. 실제로 그려지는 픽셀이
+// 아니라 캔버스 위에 겹친 장식용 오버레이라, 그림에는 절대 포함되지 않고
+// 선이 하나라도 생기는 순간(그리기 시작 즉시) 사라진다.
+.faceGuide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.guideEye {
+  fill: #d5d5d5;
+}
+
+.guideMouth,
+.guideBrow {
+  fill: none;
+  stroke: #d5d5d5;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
 .historyControls {
   display: flex;
   align-items: center;
@@ -35,7 +64,7 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  margin-top: 0; // .faceanvasPanel button { margin-top: auto } 무력화
+  margin-top: 0; // .faceCanvasPanel button { margin-top: auto } 무력화
   padding: 0;
   border: 1px solid #d9d9d9;
   border-radius: 6px;
