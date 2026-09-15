@@ -179,7 +179,7 @@ export const useCharacterStore = create<CharacterStore>()(
         set((s) => {
           const c = s.characters[id];
           if (!c) return s;
-          const damage = Math.min(20, (decibel / 100) * 20);
+          const damage = decibel / 2;
           const hit = logHit(c, "mic", "hearing", damage);
           return {
             characters: {

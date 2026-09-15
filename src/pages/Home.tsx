@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCharacterStore } from "../store/characterStore";
 import {
@@ -9,13 +9,11 @@ import {
   SCATTER_HEIGHT,
 } from "../utils/scatterLayout";
 import { CharacterFigure } from "../components/character/CharacterFigure";
-import type { CharacterConfig } from "../types/character";
 import styles from "./Home.module.scss";
 import Button from "../components/common/Button";
 
 export default function Home() {
   const charactersStore = useCharacterStore((s) => s.characters);
-  const createCharacter = useCharacterStore((s) => s.createCharacter);
   const characters = useMemo(
     () => Object.values(charactersStore),
     [charactersStore],
@@ -43,24 +41,9 @@ export default function Home() {
     navigate("/characters/create");
   }
 
-  useEffect(() => {
-    if (characters.length > 0) return;
-    const defaultConfig: CharacterConfig = {
-      headShape: "round",
-      bodyColor: "#CFCCFF",
-      faceImage: "",
-      hair: {
-        styleId: "layered",
-        removedStrands: [],
-        color: "#000",
-      },
-    };
-    createCharacter("default", defaultConfig);
-  }, []);
-
   return (
     <div className="page">
-      <header className="header">
+      <header className={"header " + styles.header}>
         <h1>I HATE YOU</h1>
         <button
           className={"right-button"}
@@ -69,6 +52,11 @@ export default function Home() {
         >
           +
         </button>
+        {characters.length === 0 && (
+          <div className={styles.createHint}>
+            여기를 눌러 캐릭터를 만들어보세요!
+          </div>
+        )}
       </header>
       <div className={styles.scatterContainer}>
         <div

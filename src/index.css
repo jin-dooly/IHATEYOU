@@ -19,7 +19,11 @@
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
-  color-scheme: light dark;
+  /* 이 앱의 화면(캐릭터룸/통계 등)은 전부 라이트 테마 전용 하드코딩 색상으로
+     만들어져 있어서, 시스템 다크모드를 그대로 따라가면 페이지 배경만 어두워
+     지고 컴포넌트 안 텍스트는 밝은 배경을 전제로 한 색 그대로 남아 글자가
+     안 보이는 문제가 생긴다. 그래서 색상 스킴을 라이트로 고정한다. */
+  color-scheme: light;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -29,22 +33,6 @@
 
   @media (max-width: 1024px) {
     font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #a3a3a3;
-    --text-h: #f4f4f4;
-    --bg: #18181a;
-    --border: #2e2e2e;
-    --code-bg: #1f1f1f;
-    --accent: #b3b3b3;
-    --accent-bg: rgba(255, 255, 255, 0.1);
-    --accent-border: rgba(255, 255, 255, 0.4);
-    --social-bg: rgba(47, 47, 47, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
   }
 }
 
@@ -60,6 +48,17 @@
   background-color: var(--bg);
 }
 
+/* body 에만 overflow-x: hidden 을 주면 body 가 아니라 html(뷰포트)이 실제
+   스크롤 컨테이너로 취급되는 모바일 브라우저(iOS Safari 등)에서는 그 hidden
+   이 뷰포트까지 전파되지 않을 수 있다 — 새총 모드에서 캐릭터가 화면 오른쪽
+   끝까지 흔들리며 이동할 때 순간적으로 가로 스크롤이 생기고, 그 스크롤 때문에
+   모바일 브라우저 주소창/툴바가 접히면서 화면 크기 자체가 바뀌어 버리는
+   증상으로 나타났다. html 에도 overflow-x: hidden 을 명시해서 뷰포트 자체가
+   가로로는 절대 스크롤되지 않게 한다. */
+html {
+  overflow-x: hidden;
+}
+
 body {
   /* width: 100%; */
   margin: 0;
@@ -69,6 +68,7 @@ body {
      (안 보이게) 넘어가도 body 는 그만큼 가로로 스크롤 가능하다고 계산해서
      스크롤바가 생긴다. 세로 스크롤은 그대로 두고 가로만 막는다. */
   overflow-x: hidden;
+  overscroll-behavior-x: none;
 }
 
 h1,

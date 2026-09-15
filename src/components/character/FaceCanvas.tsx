@@ -171,14 +171,29 @@ export function FaceCanvas({ onNext, initialImage }: FaceCanvasProps) {
       <div className={styles.faceCanvasHeader}>
         <p className={styles.faceCanvasTitle}>얼굴을 그려주세요</p>
       </div>
-      <canvas
-        ref={canvasRef}
-        className="face-canvas"
-        onPointerDown={startDrawing}
-        onPointerUp={finishDrawing}
-        onPointerMove={drawing}
-        onPointerLeave={finishDrawing} // 캔버스를 벗어나면 stroke 종료(isDrawing이 true로 남는 것 방지)
-      />
+      <div className={styles.canvasWrap}>
+        <canvas
+          ref={canvasRef}
+          className="face-canvas"
+          onPointerDown={startDrawing}
+          onPointerUp={finishDrawing}
+          onPointerMove={drawing}
+          onPointerLeave={finishDrawing} // 캔버스를 벗어나면 stroke 종료(isDrawing이 true로 남는 것 방지)
+        />
+        {!initialImage && !isDrawing && savedPolygon.length === 0 && (
+          <svg
+            className={styles.faceGuide}
+            viewBox="0 0 100 100"
+            aria-hidden="true"
+          >
+            <path className={styles.guideBrow} d="M27 30 Q35 26 43 29" />
+            <path className={styles.guideBrow} d="M57 29 Q65 26 73 30" />
+            <circle className={styles.guideEye} cx="35" cy="42" r="4" />
+            <circle className={styles.guideEye} cx="65" cy="42" r="4" />
+            <path className={styles.guideMouth} d="M38 62 Q50 74 62 62" />
+          </svg>
+        )}
+      </div>
       <div className={styles.historyControls}>
         <button
           type="button"
