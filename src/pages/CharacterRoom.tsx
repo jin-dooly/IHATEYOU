@@ -323,12 +323,12 @@ export default function CharacterRoom() {
       </div>
 
       {mode === "hair" && hairPct === 0 && (
-        <button
+        <Button
           className="primary-button refill-button"
           onClick={() => refillHair(id)}
         >
           머리카락 리필
-        </button>
+        </Button>
       )}
       {mode === "mic" && <ScreamButton characterId={id} mic={mic} />}
 
