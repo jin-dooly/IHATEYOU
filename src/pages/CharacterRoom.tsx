@@ -298,9 +298,19 @@ export default function CharacterRoom() {
               />
             )}
             {mode === "mic" && (
-              <MicWaveform decibel={mic.decibel} listening={mic.listening} />
+              <EarBloodOverlay hearing={character.stats.currentHearing} />
             )}
           </div>
+          {/* characterWrap 은 width: fit-content 로 CharacterFigure 크기에
+              딱 맞춰야 하는데(오버레이 좌표 정합성 때문), 안에 width:100% 인
+              MicWaveform 을 같이 넣으면 그 100%가 fit-content 계산에 영향을
+              줘서 characterWrap 자체가 넓어지고, 그러면 그 안의 오버레이(피
+              연출 등)가 캐릭터 그림보다 옆으로 퍼져서 어긋나 보인다. 그래서
+              MicWaveform 은 characterWrap 밖(characterWander 의 형제)으로
+              뺐다 — 캐릭터와 함께 흔들릴 필요는 없고 폭만 전체로 넓으면 된다. */}
+          {mode === "mic" && (
+            <MicWaveform decibel={mic.decibel} listening={mic.listening} />
+          )}
         </div>
 
         {mode === "slingshot" && (
@@ -334,6 +344,74 @@ export default function CharacterRoom() {
         ))}
       </nav>
     </div>
+  );
+}
+
+// 소리지르기 모드에서 청력(currentHearing)이 깎일수록 귀에서 피가 흐르는
+// 연출. CharacterFigure 와 같은 viewBox(0.5 -4.5 158 226) 위에 겹쳐서
+// 그리므로 귀 좌표를 그대로 재사용할 수 있다 — 왼쪽 귀 bbox(x 3.2~20.2,
+// y 52.5~80.0), 오른쪽 귀 bbox(x 118.0~134.2, y 48.4~77.5) 아랫부분
+// 중앙에서 흘러내리게 했다. 직선 대신 살짝 구불거리는 얇은 stroke 선으로
+// 그려서 흘러내리는 핏줄기처럼 보이게 한다.
+const EAR_BLOOD_MAX_DRIP = 14; // px, 청력이 0이 됐을 때 흘러내리는 최대 길이
+const EAR_BLOOD_MAX_WIDTH = 5.5; // px, 청력이 0이 됐을 때 핏줄기 최대 두께
+const EAR_BLOOD_COLOR = "#ff0000";
+const LEFT_EAR_DRIP_START = { x: 15, y: 65 };
+const RIGHT_EAR_DRIP_START = { x: 123, y: 63 };
+
+// (x, y) 에서 시작해서 length 만큼 살짝 구불거리며 흘러내리는 얇은 핏줄기 path.
+function dripPath(x: number, y: number, length: number) {
+  const wiggle = 1;
+  const q1y = y + length * 0.33;
+  const q2y = y + length * 0.66;
+  const endY = y + length;
+  return `M${x} ${y} Q${x + wiggle} ${y + length * 0.16} ${x} ${q1y} Q${x - wiggle} ${y + length * 0.5} ${x} ${q2y} Q${x + wiggle} ${y + length * 0.83} ${x} ${endY}`;
+}
+
+function EarBloodOverlay({ hearing }: { hearing: number }) {
+  const lossPct = Math.max(0, Math.min(100, 100 - hearing));
+  if (lossPct <= 0) return null;
+
+  const drip = (lossPct / 100) * EAR_BLOOD_MAX_DRIP;
+  const strokeWidth = (lossPct / 100) * EAR_BLOOD_MAX_WIDTH;
+  const showDrop = drip > EAR_BLOOD_MAX_DRIP * 0.5;
+
+  return (
+    <svg
+      className={styles.earBlood}
+      viewBox="0.5 -4.5 158 226"
+      aria-hidden="true"
+    >
+      <g
+        fill="none"
+        stroke={EAR_BLOOD_COLOR}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+      >
+        <path
+          d={dripPath(LEFT_EAR_DRIP_START.x, LEFT_EAR_DRIP_START.y, drip)}
+        />
+        <path
+          d={dripPath(RIGHT_EAR_DRIP_START.x, RIGHT_EAR_DRIP_START.y, drip)}
+        />
+      </g>
+      <g fill={EAR_BLOOD_COLOR}>
+        {showDrop && (
+          <circle
+            cx={LEFT_EAR_DRIP_START.x}
+            cy={LEFT_EAR_DRIP_START.y + drip}
+            r="1.8"
+          />
+        )}
+        {showDrop && (
+          <circle
+            cx={RIGHT_EAR_DRIP_START.x}
+            cy={RIGHT_EAR_DRIP_START.y + drip}
+            r="1.8"
+          />
+        )}
+      </g>
+    </svg>
   );
 }
 
